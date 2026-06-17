@@ -143,13 +143,15 @@ def line_over_time_by_brand(df):
         return None
     with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
     over_time = with_date.groupby(["mes", "marca", "sentimiento"]).size().reset_index(name="Cantidad")
-    return px.line(
+    fig = px.line(
         over_time, x="mes", y="Cantidad", color="sentimiento", facet_col="marca", facet_col_wrap=2,
         category_orders={"sentimiento": SENTIMENT_ORDER},
         color_discrete_map=SENTIMENT_COLORS,
         title="Sentimiento por marca en el tiempo", markers=True,
         labels={"mes": "Mes", "sentimiento": "Sentimiento", "marca": "Marca"},
     )
+    fig.update_yaxes(matches=None, showticklabels=True)
+    return fig
 
 
 def line_over_time_by_network(df):
@@ -158,13 +160,15 @@ def line_over_time_by_network(df):
         return None
     with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
     over_time = with_date.groupby(["mes", "red", "sentimiento"]).size().reset_index(name="Cantidad")
-    return px.line(
+    fig = px.line(
         over_time, x="mes", y="Cantidad", color="sentimiento", facet_col="red", facet_col_wrap=2,
         category_orders={"sentimiento": SENTIMENT_ORDER},
         color_discrete_map=SENTIMENT_COLORS,
         title="Sentimiento por red en el tiempo", markers=True,
         labels={"mes": "Mes", "sentimiento": "Sentimiento", "red": "Red"},
     )
+    fig.update_yaxes(matches=None, showticklabels=True)
+    return fig
 
 
 TREE_WORD_RE = re.compile(r"[a-záéíóúñü]+")
