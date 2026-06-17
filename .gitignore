@@ -1,0 +1,19 @@
+# Secrets
+.env
+
+# Dados de usuário — ficam no volume persistente do Railway, não no repo
+runs/
+uploads/
+banorte/
+input/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
