@@ -179,7 +179,7 @@ def _tokenize_for_wordtree(text):
     return TREE_WORD_RE.findall(text)
 
 
-WORD_TREE_VERSION = "10"
+WORD_TREE_VERSION = "11"
 
 # Pontuação forte que marca fim de oração
 _SENT_PUNCT_RE = re.compile(r"[.!?;]")
@@ -205,7 +205,7 @@ def tag_texts_for_wordtree(texts):
 
 
 def build_word_tree(tagged_texts, root_phrase, max_children=6, max_phrase_words=6,
-                    full_texts=None, likes=None):
+                    full_texts=None, likes=None, sentiments=None):
     """Árbol de 3 niveles: keyword → palabras más usadas → comentarios reales.
 
     Nivel 1: palabras de contenido más frecuentes en las continuaciones de
@@ -238,9 +238,11 @@ def build_word_tree(tagged_texts, root_phrase, max_children=6, max_phrase_words=
                 likes_val = lk if lk == lk else 0.0  # NaN guard
             except (TypeError, ValueError):
                 likes_val = 0.0
+            sentiment_val = str(sentiments[text_idx]) if sentiments is not None else "Neutral"
         else:
             display_text = None
             likes_val = 0.0
+            sentiment_val = "Neutral"
 
         for i in range(len(words) - n + 1):
             if words[i:i + n] != root_tokens:
@@ -273,9 +275,9 @@ def build_word_tree(tagged_texts, root_phrase, max_children=6, max_phrase_words=
                 if full_texts is not None:
                     # deduplicate by comment index; keep highest likes on conflict
                     if text_idx not in word_leaves[w]:
-                        word_leaves[w][text_idx] = (likes_val, display_text)
+                        word_leaves[w][text_idx] = (likes_val, display_text, sentiment_val)
                     elif likes_val > word_leaves[w][text_idx][0]:
-                        word_leaves[w][text_idx] = (likes_val, display_text)
+                        word_leaves[w][text_idx] = (likes_val, display_text, sentiment_val)
                 else:
                     phrase = " ".join(continuation)
                     word_leaves[w][phrase] = word_leaves[w].get(phrase, 0) + 1
@@ -290,8 +292,8 @@ def build_word_tree(tagged_texts, root_phrase, max_children=6, max_phrase_words=
         leaves = word_leaves.get(word, {})
         if full_texts is not None:
             sorted_leaves = sorted(leaves.values(), key=lambda x: -x[0])[:max_children]
-            leaf_nodes = [{"name": text, "value": max(int(lk), 1)}
-                          for lk, text in sorted_leaves]
+            leaf_nodes = [{"name": text, "value": max(int(lk), 1), "sentiment": sent}
+                          for lk, text, sent in sorted_leaves]
         else:
             top_phrases = sorted(leaves.items(), key=lambda x: -x[1])[:max_children]
             leaf_nodes = [{"name": ph, "value": cnt} for ph, cnt in top_phrases]
@@ -369,8 +371,16 @@ const node = g.append("g")
     .attr("transform", d => `translate(${d.y},${d.x})`);
 
 node.append("circle")
-    .attr("fill", d => d.depth === 0 ? "#A73253" : "#09B7E9")
-    .attr("r", d => d.depth === 0 ? 7 : 4);
+    .attr("fill", d => {
+      if (d.depth === 0) return "#A73253";
+      if (!d.children) {
+        if (d.data.sentiment === "Positivo") return "#2ecc71";
+        if (d.data.sentiment === "Negativo") return "#e74c3c";
+        return "#95a5a6";
+      }
+      return "#09B7E9";
+    })
+    .attr("r", d => d.depth === 0 ? 7 : (d.children ? 4 : 5));
 
 node.append("text")
     .attr("dy", "0.31em")

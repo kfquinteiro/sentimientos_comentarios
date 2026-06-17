@@ -116,7 +116,9 @@ def build_word_tree_data(report_path, mtime, root_phrase, tree_version="1"):
     valid = df["Comentario"].notna()
     full_texts = df.loc[valid, "Comentario"].tolist()
     likes_col = df.loc[valid, "Likes"].fillna(0).tolist() if "Likes" in df.columns else None
-    return charts.build_word_tree(tagged, root_phrase, full_texts=full_texts, likes=likes_col)
+    sent_col = df.loc[valid, "Sentimiento"].tolist() if "Sentimiento" in df.columns else None
+    return charts.build_word_tree(tagged, root_phrase, full_texts=full_texts,
+                                  likes=likes_col, sentiments=sent_col)
 
 
 def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_comparison=False):
