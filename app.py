@@ -152,30 +152,58 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     st.subheader("Nube de palabras por red")
     wc_cols = st.columns(2)
     for i, red in enumerate(networks):
-        img = build_wordcloud_image(active_path, mtime, red=red)
         with wc_cols[i % 2]:
             st.caption(red)
-            if img is not None:
-                st.image(img, use_container_width=True)
+            net_texts = df[df["Red"] == red]["Comentario"].dropna().tolist()
+            wc_data = charts.top_words(net_texts, n=30)
+            if wc_data:
+                html = charts.interactive_wordcloud_html(wc_data, click_red=red)
+                components.html(html, height=180)
             else:
                 st.caption("No hay suficiente texto para generar la nube.")
 
+    # Detect click from word cloud (via query params)
+    _qp_word = st.query_params.get("wc_word")
+    _qp_red = st.query_params.get("wc_red")
+    if _qp_word:
+        st.session_state["{}_sel_word".format(key_prefix)] = _qp_word
+        st.session_state["{}_sel_red".format(key_prefix)] = _qp_red
+        st.query_params.clear()
+
     cloud_words = charts.top_words(df["Comentario"].dropna())
+    _stored_word = st.session_state.get("{}_sel_word".format(key_prefix))
     if cloud_words:
         word_labels = ["{} ({})".format(w, c) for w, c in cloud_words]
+        default_idx = None
+        if _stored_word:
+            for idx, (w, _) in enumerate(cloud_words):
+                if w == _stored_word:
+                    default_idx = idx
+                    break
         selected_pill = st.pills(
-            "Haz clic en una palabra para ver los comentarios",
+            "Haz clic en una palabra (de la nube o aquí) para ver los comentarios",
             word_labels, key="{}_wc_pill".format(key_prefix),
+            default=word_labels[default_idx] if default_idx is not None else None,
         )
         if selected_pill:
             word = selected_pill.split(" (")[0]
+        elif _stored_word:
+            word = _stored_word
+        else:
+            word = None
+
+        if word:
             matches = df[df["Comentario"].str.lower().str.contains(word, na=False)]
             if not matches.empty:
                 fcol1, fcol2 = st.columns(2)
                 red_opts = ["Todas"] + sorted(matches["Red"].dropna().unique().tolist()) if "Red" in matches.columns else ["Todas"]
                 sent_opts = ["Todos"] + charts.SENTIMENT_ORDER
-                sel_r = fcol1.selectbox("Red", red_opts, key="{}_wc_red".format(key_prefix))
-                sel_s = fcol2.selectbox("Sentimiento", sent_opts, key="{}_wc_sent".format(key_prefix))
+                cloud_red = st.session_state.get("{}_sel_red".format(key_prefix))
+                default_red = red_opts.index(cloud_red) if cloud_red and cloud_red in red_opts else 0
+                sel_r = fcol1.selectbox("Red", red_opts, index=default_red,
+                                        key="{}_wc_red_f".format(key_prefix))
+                sel_s = fcol2.selectbox("Sentimiento", sent_opts,
+                                        key="{}_wc_sent_f".format(key_prefix))
 
                 if sel_r != "Todas" and "Red" in matches.columns:
                     matches = matches[matches["Red"] == sel_r]

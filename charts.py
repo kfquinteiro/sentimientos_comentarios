@@ -79,6 +79,44 @@ def top_words(texts, n=20):
     return Counter(all_words).most_common(n)
 
 
+def interactive_wordcloud_html(word_counts, click_red=None):
+    """Nube de palabras HTML con palabras clicables.
+    Cada palabra es un link que navega al padre con query params."""
+    if not word_counts:
+        return None
+    max_c = word_counts[0][1]
+    min_c = word_counts[-1][1] if len(word_counts) > 1 else max_c
+    rng = max(max_c - min_c, 1)
+
+    spans = []
+    for i, (word, count) in enumerate(word_counts):
+        size = 14 + int(28 * (count - min_c) / rng)
+        color = WIPER_PALETTE[i % len(WIPER_PALETTE)]
+        weight = "bold" if size > 24 else "normal"
+        params = "wc_word={}".format(word)
+        if click_red:
+            params += "&wc_red={}".format(click_red)
+        spans.append(
+            '<a href="?{params}" target="_parent" '
+            'style="font-size:{size}px;color:{color};cursor:pointer;'
+            'padding:3px 6px;display:inline-block;font-weight:{weight};'
+            'text-decoration:none;transition:opacity .15s" '
+            'onmouseover="this.style.opacity=0.6;this.style.textDecoration=\'underline\'" '
+            'onmouseout="this.style.opacity=1;this.style.textDecoration=\'none\'">'
+            '{word}</a>'.format(
+                params=params, size=size, color=color,
+                weight=weight, word=word,
+            )
+        )
+
+    return (
+        '<div style="display:flex;flex-wrap:wrap;align-items:center;'
+        'justify-content:center;gap:2px;padding:12px;'
+        'background:white;border-radius:8px;min-height:100px">'
+        '{}</div>'.format('\n'.join(spans))
+    )
+
+
 def _wiper_color_func(word, font_size, position, orientation, random_state=None, **kwargs):
     if random_state is not None:
         return random_state.choice(WIPER_PALETTE)
