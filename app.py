@@ -299,6 +299,33 @@ st.set_page_config(
     page_icon=LOGO_PATH if os.path.exists(LOGO_PATH) else None,
 )
 
+
+def _check_password():
+    pwd = st.secrets.get("PASSWORD") or os.environ.get("PASSWORD", "")
+    if not pwd:
+        return True
+    if st.session_state.get("authenticated"):
+        return True
+    col = st.columns([1, 1, 1])[1]
+    with col:
+        if os.path.exists(LOGO_PATH):
+            st.image(LOGO_PATH, width=120)
+        with st.form("login"):
+            st.markdown("#### Acceso restringido")
+            entered = st.text_input("Contraseña", type="password")
+            if st.form_submit_button("Entrar", use_container_width=True):
+                if entered == pwd:
+                    st.session_state["authenticated"] = True
+                    st.rerun()
+                else:
+                    st.error("Contraseña incorrecta.")
+    return False
+
+
+if not _check_password():
+    st.stop()
+
+
 st.markdown(
     """
     <style>
