@@ -24,6 +24,9 @@ PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_DIR = os.path.join(PROJECT_DIR, "input")
 RUNS_DIR = os.path.join(PROJECT_DIR, "runs")
 UPLOADS_DIR = os.path.join(PROJECT_DIR, "uploads")
+
+os.makedirs(RUNS_DIR, exist_ok=True)
+os.makedirs(UPLOADS_DIR, exist_ok=True)
 UPLOADED_BASE_FILENAME = "base_comentarios.xlsx"
 FINISHED_STATUSES = {"done", "error", "timeout", "skipped"}
 
@@ -354,6 +357,8 @@ with col_title:
 
 
 def list_runs():
+    if not os.path.isdir(RUNS_DIR):
+        return []
     runs = []
     for name in sorted(os.listdir(RUNS_DIR), reverse=True):
         run_dir = os.path.join(RUNS_DIR, name)
