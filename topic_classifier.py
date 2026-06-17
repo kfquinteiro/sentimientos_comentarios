@@ -140,111 +140,137 @@ DICTIONARIES = {
     "servicios_financieros": {
         "name": "Servicios financieros",
         "topics": {
-            "Cartão / Tarjeta": [
+            "Crédito": [
                 # PT-BR
-                "cartão", "cartão de crédito", "cartão de débito", "anuidade",
-                "limite", "fatura", "parcelamento", "cashback", "pontos", "milhas",
-                "bandeira", "visa", "mastercard", "elo", "platinum", "gold", "black",
-                "cartão virtual", "cartão adicional", "aproximação",
-                # ES
-                "tarjeta", "tarjeta de crédito", "tarjeta de débito", "anualidad",
-                "límite de crédito", "estado de cuenta", "meses sin intereses",
-                "cashback", "puntos", "millas", "visa", "mastercard",
-                "tarjeta virtual", "tarjeta adicional", "contactless",
-            ],
-            "Atendimento / Atención": [
-                # PT-BR
-                "atendimento", "call center", "sac", "suporte", "reclamação",
-                "ouvidoria", "chat", "atendente", "espera", "demora", "protocolo",
-                "procon", "reclame aqui", "0800", "whatsapp",
-                # ES
-                "atención", "atención al cliente", "call center", "soporte",
-                "reclamación", "queja", "chat", "agente", "espera", "demora",
-                "protocolo", "condusef", "whatsapp",
-            ],
-            "Taxas e cobranças": [
-                # PT-BR
-                "taxa", "tarifa", "cobrança", "cobrança indevida", "juros", "iof",
-                "multa", "mora", "encargo", "spread", "cet", "estorno",
-                "cobrança abusiva",
-                # ES
-                "tasa", "tarifa", "cobro", "cobro indebido", "comisión", "interés",
-                "multa", "mora", "cargo", "recargo", "costo", "cobro abusivo",
-            ],
-            "Empréstimo / Crédito": [
-                # PT-BR
-                "empréstimo", "crédito", "financiamento", "consignado",
+                "crédito", "empréstimo", "financiamento", "consignado",
                 "crédito pessoal", "parcela", "prestação", "score",
                 "nome limpo", "nome sujo", "serasa", "spc", "inadimplente",
                 "renegociação", "dívida", "endividamento", "refinanciamento",
+                "juros", "taxa de juros", "aprovação de crédito", "limite de crédito",
                 # ES
-                "préstamo", "crédito", "financiamiento", "cuota", "mensualidad",
+                "crédito", "préstamo", "financiamiento", "cuota", "mensualidad",
                 "score", "buró de crédito", "deuda", "endeudamiento",
-                "refinanciamiento", "moroso", "reestructuración",
+                "refinanciamiento", "moroso", "reestructuración", "intereses",
+                "tasa de interés", "aprobación de crédito", "límite de crédito",
             ],
-            "Conta bancária": [
+            "Benefícios": [
                 # PT-BR
-                "conta", "conta corrente", "conta poupança", "saldo", "extrato",
-                "depósito", "saque", "caixa eletrônico", "agência", "gerente",
-                "abertura de conta", "encerramento", "portabilidade",
-                "conta digital", "conta salário",
+                "cashback", "pontos", "milhas", "promoção", "desconto",
+                "programa de fidelidade", "benefício", "recompensa", "vantagem",
+                "resgate", "acumular pontos", "livelo", "smiles", "tudoazul",
+                "programa de pontos", "cupom", "ofertas",
                 # ES
-                "cuenta", "cuenta corriente", "cuenta de ahorro", "saldo",
-                "estado de cuenta", "depósito", "retiro", "cajero", "cajero automático",
-                "sucursal", "gerente", "apertura de cuenta", "cuenta digital",
+                "cashback", "puntos", "millas", "promoción", "descuento",
+                "programa de lealtad", "beneficio", "recompensa", "ventaja",
+                "canje", "acumular puntos", "cupón", "ofertas",
+                "programa de puntos", "meses sin intereses",
             ],
-            "App e canais digitais": [
+            "Investimento": [
                 # PT-BR
-                "app", "aplicativo", "internet banking", "site", "plataforma",
-                "token", "senha", "biometria", "reconhecimento facial",
-                "notificação", "push", "bug", "erro", "instabilidade",
-                "fora do ar", "lento", "atualização", "login",
+                "investimento", "renda fixa", "renda variável", "cdb", "lci", "lca",
+                "tesouro direto", "ação", "ações", "bolsa", "fundo",
+                "rentabilidade", "rendimento", "dividendo", "corretora", "b3",
+                "poupança", "aplicação", "resgate", "carteira de investimento",
                 # ES
-                "app", "aplicación", "banca en línea", "banca móvil", "sitio",
-                "plataforma", "token", "contraseña", "biometría",
-                "reconocimiento facial", "notificación", "error", "inestabilidad",
-                "fuera de servicio", "lento", "actualización", "login",
+                "inversión", "renta fija", "renta variable", "acción", "acciones",
+                "bolsa", "fondo", "rentabilidad", "rendimiento", "dividendo",
+                "corredor", "cetes", "bonos", "ahorro", "cartera de inversión",
             ],
-            "Fraude e segurança": [
+            "Segurança": [
                 # PT-BR
                 "fraude", "golpe", "clonagem", "phishing", "estelionato",
                 "hackeado", "invasão", "compra não reconhecida", "bloqueio",
                 "desbloqueio", "contestação", "chargeback", "senha vazada",
-                "engenharia social", "pix falso", "golpe do pix",
+                "engenharia social", "golpe do pix", "segurança", "proteção",
+                "verificação", "autenticação", "token",
                 # ES
                 "fraude", "estafa", "clonación", "phishing", "hackeado",
                 "compra no reconocida", "cargo no reconocido", "bloqueo",
                 "desbloqueo", "contestación", "chargeback", "contraseña filtrada",
-                "ingeniería social",
+                "ingeniería social", "seguridad", "protección",
+                "verificación", "autenticación", "token",
             ],
-            "Investimentos": [
+            "Cartões": [
                 # PT-BR
-                "investimento", "renda fixa", "renda variável", "cdb", "lci", "lca",
-                "tesouro direto", "ação", "ações", "bolsa", "fundo",
-                "rentabilidade", "rendimento", "dividendo", "corretora",
+                "cartão", "cartão de crédito", "cartão de débito", "anuidade",
+                "fatura", "bandeira", "visa", "mastercard", "elo", "platinum",
+                "gold", "black", "cartão virtual", "cartão adicional",
+                "aproximação", "chip", "contactless", "cartão físico",
                 # ES
-                "inversión", "renta fija", "renta variable", "acción", "acciones",
-                "bolsa", "fondo", "rentabilidad", "rendimiento", "dividendo",
-                "corredor", "cetes", "bonos",
+                "tarjeta", "tarjeta de crédito", "tarjeta de débito", "anualidad",
+                "estado de cuenta", "visa", "mastercard",
+                "tarjeta virtual", "tarjeta adicional", "contactless",
+                "chip", "tarjeta física", "plástico",
             ],
-            "Seguros": [
+            "Pagamentos": [
+                # PT-BR
+                "pagamento", "boleto", "qr code", "vencimento", "parcelamento",
+                "maquininha", "cobrança", "fatura", "débito automático",
+                "pagamento por aproximação", "pagar", "compra",
+                # ES
+                "pago", "factura", "código qr", "vencimiento", "cuotas",
+                "terminal", "cobro", "domiciliación", "débito automático",
+                "pagar", "compra",
+            ],
+            "Criptomoedas": [
+                # PT-BR
+                "bitcoin", "cripto", "criptomoeda", "ethereum", "blockchain",
+                "carteira digital", "exchange", "mineração", "nft", "defi",
+                "stablecoin", "usdt", "binance", "web3", "altcoin",
+                # ES
+                "bitcoin", "cripto", "criptomoneda", "ethereum", "blockchain",
+                "billetera digital", "exchange", "minería", "nft", "defi",
+                "stablecoin", "usdt", "binance", "web3", "altcoin",
+            ],
+            "Saldo e extrato": [
+                # PT-BR
+                "saldo", "extrato", "depósito", "saque", "caixa eletrônico",
+                "comprovante", "movimentação", "lançamento", "conta corrente",
+                "conta poupança", "conta digital", "consulta",
+                # ES
+                "saldo", "estado de cuenta", "depósito", "retiro", "cajero",
+                "cajero automático", "comprobante", "movimiento", "cuenta corriente",
+                "cuenta de ahorro", "cuenta digital", "consulta",
+            ],
+            "Transferências": [
+                # PT-BR
+                "transferência", "pix", "ted", "doc", "chave pix",
+                "devolução", "pix parcelado", "pix agendado", "enviar dinheiro",
+                "receber", "chave aleatória", "cpf",
+                # ES
+                "transferencia", "spei", "clabe", "transferencia bancaria",
+                "devolución", "enviar dinero", "recibir",
+            ],
+            "Portabilidade": [
+                # PT-BR
+                "portabilidade", "portabilidade de salário",
+                "portabilidade de crédito", "migração", "troca de banco",
+                "mudar de banco", "abertura de conta", "encerramento de conta",
+                # ES
+                "portabilidad", "portabilidad de nómina",
+                "portabilidad de crédito", "migración", "cambio de banco",
+                "cambiar de banco", "apertura de cuenta", "cierre de cuenta",
+            ],
+            "Assinaturas": [
+                # PT-BR
+                "assinatura", "recorrência", "débito automático", "plano",
+                "mensalidade", "cancelamento", "streaming", "renovação",
+                "cobrança recorrente", "serviço", "pacote",
+                # ES
+                "suscripción", "recurrencia", "domiciliación", "plan",
+                "mensualidad", "cancelación", "streaming", "renovación",
+                "cobro recurrente", "servicio", "paquete",
+            ],
+            "Seguro": [
                 # PT-BR
                 "seguro", "sinistro", "apólice", "cobertura", "prêmio",
                 "indenização", "seguro auto", "seguro vida", "seguro residencial",
-                "franquia", "seguradora",
+                "franquia", "seguradora", "seguro viagem", "proteção veicular",
                 # ES
                 "seguro", "siniestro", "póliza", "cobertura", "prima",
                 "indemnización", "seguro auto", "seguro de vida",
                 "seguro residencial", "deducible", "aseguradora",
-            ],
-            "Pix e transferências": [
-                # PT-BR
-                "pix", "transferência", "ted", "doc", "boleto", "pagamento",
-                "qr code", "chave pix", "devolução", "comprovante",
-                "pix parcelado", "pix agendado",
-                # ES
-                "transferencia", "pago", "código qr", "devolución", "reembolso",
-                "comprobante", "spei", "clabe", "transferencia bancaria",
+                "seguro de viaje",
             ],
         },
     },
