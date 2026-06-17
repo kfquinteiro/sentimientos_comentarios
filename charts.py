@@ -179,7 +179,7 @@ def _tokenize_for_wordtree(text):
     return TREE_WORD_RE.findall(text)
 
 
-WORD_TREE_VERSION = "9"
+WORD_TREE_VERSION = "10"
 
 # Pontuação forte que marca fim de oração
 _SENT_PUNCT_RE = re.compile(r"[.!?;]")
@@ -232,7 +232,7 @@ def build_word_tree(tagged_texts, root_phrase, max_children=6, max_phrase_words=
 
         # pre-resolve comment data for this index
         if full_texts is not None:
-            display_text = _truncate(full_texts[text_idx])
+            display_text = str(full_texts[text_idx]).strip()
             try:
                 lk = float(likes[text_idx]) if likes is not None else 0.0
                 likes_val = lk if lk == lk else 0.0  # NaN guard
