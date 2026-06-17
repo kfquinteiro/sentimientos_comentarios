@@ -221,10 +221,19 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
 
         top_liked = filtered.sort_values("Likes", ascending=False).head(10)
         show_cols = [
-            c for c in ["Red", "Marca", "Autor", "Comentario", "Likes", "Sentimiento", "Fecha del comentario"]
+            c for c in ["Red", "Marca", "Autor", "Comentario", "Likes", "Sentimiento"]
             if c in top_liked.columns
         ]
-        st.dataframe(top_liked[show_cols], hide_index=True, use_container_width=True)
+        if "Link del post" in top_liked.columns:
+            show_cols.append("Link del post")
+        st.dataframe(
+            top_liked[show_cols], hide_index=True, use_container_width=True,
+            column_config={
+                "Link del post": st.column_config.LinkColumn(
+                    "Link", display_text="🔗", width="small",
+                ),
+            },
+        )
     else:
         st.caption("No hay datos de likes disponibles.")
 
