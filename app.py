@@ -171,6 +171,17 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
             word = selected_pill.split(" (")[0]
             matches = df[df["Comentario"].str.lower().str.contains(word, na=False)]
             if not matches.empty:
+                fcol1, fcol2 = st.columns(2)
+                red_opts = ["Todas"] + sorted(matches["Red"].dropna().unique().tolist()) if "Red" in matches.columns else ["Todas"]
+                sent_opts = ["Todos"] + charts.SENTIMENT_ORDER
+                sel_r = fcol1.selectbox("Red", red_opts, key="{}_wc_red".format(key_prefix))
+                sel_s = fcol2.selectbox("Sentimiento", sent_opts, key="{}_wc_sent".format(key_prefix))
+
+                if sel_r != "Todas" and "Red" in matches.columns:
+                    matches = matches[matches["Red"] == sel_r]
+                if sel_s != "Todos" and "Sentimiento" in matches.columns:
+                    matches = matches[matches["Sentimiento"] == sel_s]
+
                 if "Likes" in matches.columns:
                     matches = matches.sort_values("Likes", ascending=False)
                 top = matches.head(10)
@@ -179,12 +190,21 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
                 if "Link del post" in top.columns:
                     show.append("Link del post")
                 st.caption("{} comentarios con '{}' — mostrando top 10:".format(len(matches), word))
+
+                def _color_sent(val):
+                    return {"Positivo": "color: #2ecc71; font-weight: bold",
+                            "Negativo": "color: #e74c3c; font-weight: bold",
+                            "Neutral": "color: #95a5a6"}.get(val, "")
+
+                styled = top[show].style.map(_color_sent, subset=["Sentimiento"]) if "Sentimiento" in top.columns else top[show]
                 st.dataframe(
-                    top[show], hide_index=True, use_container_width=True,
+                    styled, hide_index=True, use_container_width=True,
                     column_config={
                         "Link del post": st.column_config.LinkColumn("Link", display_text="🔗", width="small"),
                     },
                 )
+            else:
+                st.caption("No se encontraron comentarios con '{}'.".format(word))
 
     st.subheader("Nube de palabras por sentimiento")
     network_options = ["Todas"] + networks
