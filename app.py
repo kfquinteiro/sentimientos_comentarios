@@ -970,10 +970,26 @@ with tab_analysis:
 
     else:
         st.caption(
-            "Sube un archivo XLSX con una hoja 'Comentarios' en el mismo formato "
-            "que el análisis generado por esta herramienta (columnas Red, Marca, "
-            "Sentimiento, Comentario, etc.)."
+            "Sube cualquier archivo XLSX o CSV con comentarios. "
+            "Mapea las columnas de tu archivo a los campos del análisis."
         )
+
+        _ANALYSIS_DETECT = {
+            "Comentario": {"comentario", "comment", "texto", "text", "message"},
+            "Red": {"red", "network", "plataforma", "platform", "red social"},
+            "Sentimiento": {"sentimiento", "sentiment", "sentimento"},
+            "Marca": {"marca", "brand"},
+            "Autor": {"autor", "author", "username", "usuario", "user", "name"},
+            "Likes": {"likes", "me gusta"},
+            "Fecha del comentario": {"fecha del comentario", "fecha", "date"},
+            "Link del post": {"link del post", "link", "url", "post url"},
+        }
+
+        def _detect_analysis_col(field, cols):
+            for c in cols:
+                if c.strip().lower() in _ANALYSIS_DETECT.get(field, set()):
+                    return c
+            return None
 
         if "upload_base_uploader_key" not in st.session_state:
             st.session_state["upload_base_uploader_key"] = 0
@@ -981,27 +997,98 @@ with tab_analysis:
         base_path = os.path.join(UPLOADS_DIR, UPLOADED_BASE_FILENAME)
 
         uploaded_base = st.file_uploader(
-            "Archivo XLSX", type=["xlsx"],
+            "Archivo XLSX o CSV", type=["xlsx", "csv"],
             key="upload_base_{}".format(st.session_state["upload_base_uploader_key"]),
         )
 
         if uploaded_base is not None:
             try:
-                test_df = pd.read_excel(uploaded_base, sheet_name="Comentarios")
+                if uploaded_base.name.lower().endswith(".csv"):
+                    raw_up = pd.read_csv(uploaded_base)
+                else:
+                    try:
+                        raw_up = pd.read_excel(uploaded_base, sheet_name="Comentarios")
+                    except Exception:
+                        raw_up = pd.read_excel(uploaded_base, sheet_name=0)
+                raw_up = raw_up.dropna(axis=1, how="all")
+                raw_up.columns = [str(c).strip() for c in raw_up.columns]
+                up_cols = raw_up.columns.tolist()
             except Exception as e:
                 st.error("Error al leer el archivo: {}".format(e))
-                test_df = None
+                raw_up = None
+                up_cols = []
 
-            if test_df is not None:
-                required = {"Red", "Sentimiento", "Comentario"}
-                if not required.issubset(test_df.columns):
-                    st.error(
-                        "El archivo debe tener una hoja 'Comentarios' con al menos "
-                        "las columnas: Red, Sentimiento, Comentario."
-                    )
-                else:
-                    with open(base_path, "wb") as f:
-                        f.write(uploaded_base.getbuffer())
+            if raw_up is not None and up_cols:
+                st.caption("Mapea las columnas de tu archivo:")
+                _na = "(no disponible)"
+                _opt = [_na] + up_cols
+
+                _ac1, _ac2 = st.columns(2)
+                _det = _detect_analysis_col
+                m_comment = _ac1.selectbox(
+                    "Comentario (requerido)", up_cols,
+                    index=up_cols.index(_det("Comentario", up_cols)) if _det("Comentario", up_cols) else 0,
+                    key="umap_comment",
+                )
+                m_red = _ac2.selectbox(
+                    "Red / Plataforma (requerido)", up_cols,
+                    index=up_cols.index(_det("Red", up_cols)) if _det("Red", up_cols) else 0,
+                    key="umap_red",
+                )
+                m_sent = _ac1.selectbox(
+                    "Sentimiento", _opt,
+                    index=_opt.index(_det("Sentimiento", up_cols) or _na),
+                    key="umap_sent",
+                )
+                m_marca = _ac2.selectbox(
+                    "Marca", _opt,
+                    index=_opt.index(_det("Marca", up_cols) or _na),
+                    key="umap_marca",
+                )
+                m_autor = _ac1.selectbox(
+                    "Autor", _opt,
+                    index=_opt.index(_det("Autor", up_cols) or _na),
+                    key="umap_autor",
+                )
+                m_likes = _ac2.selectbox(
+                    "Likes", _opt,
+                    index=_opt.index(_det("Likes", up_cols) or _na),
+                    key="umap_likes",
+                )
+                m_fecha = _ac1.selectbox(
+                    "Fecha del comentario", _opt,
+                    index=_opt.index(_det("Fecha del comentario", up_cols) or _na),
+                    key="umap_fecha",
+                )
+                m_link = _ac2.selectbox(
+                    "Link del post", _opt,
+                    index=_opt.index(_det("Link del post", up_cols) or _na),
+                    key="umap_link",
+                )
+
+                col_map = {
+                    "Comentario": m_comment,
+                    "Red": m_red,
+                }
+                for field, val in [("Sentimiento", m_sent), ("Marca", m_marca),
+                                   ("Autor", m_autor), ("Likes", m_likes),
+                                   ("Fecha del comentario", m_fecha),
+                                   ("Link del post", m_link)]:
+                    if val != _na:
+                        col_map[field] = val
+
+                rename_up = {v: k for k, v in col_map.items() if v != k}
+                mapped_up = raw_up.rename(columns=rename_up)
+
+                st.caption("{} filas · {} columnas mapeadas".format(
+                    len(mapped_up), len(col_map)))
+                preview_cols = [c for c in ["Red", "Marca", "Autor", "Comentario",
+                                            "Likes", "Sentimiento"] if c in mapped_up.columns]
+                st.dataframe(mapped_up[preview_cols].head(10), hide_index=True,
+                             use_container_width=True)
+
+                if st.button("Cargar base", type="primary", key="load_base"):
+                    mapped_up.to_excel(base_path, sheet_name="Comentarios", index=False)
                     st.session_state["upload_base_uploader_key"] += 1
                     st.rerun()
 
@@ -1015,4 +1102,4 @@ with tab_analysis:
                 base_path, mtime, key_prefix="upload_base",
                 show_brand_comparison=True)
         else:
-            st.info("Sube un archivo XLSX para ver el análisis.")
+            st.info("Sube un archivo para ver el análisis.")
