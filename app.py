@@ -539,12 +539,27 @@ tab_export, tab_runs, tab_analysis = st.tabs(
     ["Nueva exportación", "Ejecuciones", "Análisis"]
 )
 
+_COL_DETECT = {
+    "link": {"link", "url", "enlace", "post_url", "link del post"},
+    "network": {"network", "red", "red social", "plataforma", "platform"},
+    "profile": {"profile", "perfil", "marca", "cuenta", "brand", "account"},
+    "date": {"date", "fecha", "fecha de publicación", "published"},
+}
+
+
+def _auto_col(field, columns):
+    for c in columns:
+        if c.strip().lower() in _COL_DETECT.get(field, set()):
+            return c
+    return None
+
+
 with tab_export:
     if "uploader_key" not in st.session_state:
         st.session_state["uploader_key"] = 0
 
     uploaded = st.file_uploader(
-        "Hoja de cálculo de posts (.xlsx)", type=["xlsx"],
+        "Hoja de cálculo de posts (.xlsx, .csv)", type=["xlsx", "csv"],
         key="uploader_{}".format(st.session_state["uploader_key"]),
     )
 
@@ -558,25 +573,71 @@ with tab_export:
             f.write(uploaded.getbuffer())
 
         try:
-            links_df = sr.read_links(save_path)
+            raw_df = sr.read_raw_file(save_path)
+            columns = raw_df.columns.tolist()
         except Exception as e:
-            st.error("Error al leer la hoja de cálculo: {}".format(e))
-            links_df = None
+            st.error("Error al leer el archivo: {}".format(e))
+            raw_df = None
+            columns = []
 
-        if links_df is not None:
-            st.success("{} links encontrados".format(len(links_df)))
-            if "network" in links_df.columns:
-                counts = links_df["network"].value_counts().rename_axis("Red").reset_index(name="Cantidad")
-                st.dataframe(counts, hide_index=True, use_container_width=True)
-            st.dataframe(links_df.head(20), use_container_width=True)
+        if raw_df is not None and columns:
+            st.caption("Mapea las columnas de tu archivo:")
+            none_opt = "(no disponible)"
+            opt_cols = [none_opt] + columns
 
-            if st.button("Iniciar exportación", type="primary"):
-                run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-                run_dir = os.path.join(RUNS_DIR, run_id)
-                orc.init_run(run_dir, links_df, source_file=save_path)
-                launch_run(run_dir)
-                st.session_state["active_run"] = run_id
-                st.rerun()
+            mc1, mc2 = st.columns(2)
+            auto_link = _auto_col("link", columns)
+            col_link = mc1.selectbox(
+                "Link del post (requerido)", columns,
+                index=columns.index(auto_link) if auto_link else 0,
+                key="map_link",
+            )
+            col_net = mc2.selectbox(
+                "Red social", opt_cols,
+                index=opt_cols.index(_auto_col("network", columns) or none_opt),
+                key="map_network",
+            )
+            col_profile = mc1.selectbox(
+                "Perfil / Marca", opt_cols,
+                index=opt_cols.index(_auto_col("profile", columns) or none_opt),
+                key="map_profile",
+            )
+            col_date = mc2.selectbox(
+                "Fecha de publicación", opt_cols,
+                index=opt_cols.index(_auto_col("date", columns) or none_opt),
+                key="map_date",
+            )
+
+            mapping = {"link": col_link}
+            if col_net != none_opt:
+                mapping["network"] = col_net
+            if col_profile != none_opt:
+                mapping["profile"] = col_profile
+            if col_date != none_opt:
+                mapping["date"] = col_date
+
+            try:
+                links_df = sr.read_with_mapping(save_path, mapping)
+            except Exception as e:
+                st.error("Error al procesar: {}".format(e))
+                links_df = None
+
+            if links_df is not None:
+                st.success("{} links encontrados".format(len(links_df)))
+                if "network" in links_df.columns:
+                    counts = (links_df["network"].value_counts()
+                              .rename_axis("Red").reset_index(name="Cantidad"))
+                    st.dataframe(counts, hide_index=True, use_container_width=True)
+                st.dataframe(links_df.head(20), use_container_width=True)
+
+                if st.button("Iniciar exportación", type="primary"):
+                    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    run_dir = os.path.join(RUNS_DIR, run_id)
+                    orc.init_run(run_dir, links_df, source_file=save_path,
+                                 column_mapping=mapping)
+                    launch_run(run_dir)
+                    st.session_state["active_run"] = run_id
+                    st.rerun()
 
 
 with tab_runs:

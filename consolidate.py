@@ -107,11 +107,11 @@ def build_consolidated(run_dir):
     comentários exportado com os metadados do post correspondente."""
     state = orc.load_state(run_dir)
     source_file = state.get("source_file")
-    # brand_mapping: {profile_original → nome_de_marca} definido pelo usuário na UI
+    column_mapping = state.get("column_mapping") or None
     raw_mapping = state.get("brand_mapping", {})
     brand_mapping = {k.lower(): v for k, v in raw_mapping.items() if v and v.strip()}
 
-    posts_df = sr.read_links(source_file)
+    posts_df = sr.read_links(source_file, column_mapping=column_mapping)
     posts_by_link = posts_df.set_index("link")
 
     rows = []

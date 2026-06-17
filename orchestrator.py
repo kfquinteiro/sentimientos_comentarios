@@ -50,7 +50,7 @@ def save_state(run_dir, state):
     os.replace(tmp_path, path)
 
 
-def init_run(run_dir, links_df, source_file=None):
+def init_run(run_dir, links_df, source_file=None, column_mapping=None):
     os.makedirs(run_dir, exist_ok=True)
     os.makedirs(files_dir(run_dir), exist_ok=True)
 
@@ -75,6 +75,7 @@ def init_run(run_dir, links_df, source_file=None):
 
     state = {
         "source_file": source_file,
+        "column_mapping": column_mapping or {},
         "created_at": now_iso(),
         "items": items,
     }
