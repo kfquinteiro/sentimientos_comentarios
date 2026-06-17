@@ -616,6 +616,37 @@ with tab_runs:
 
         render_run_status(run_dir, selected_run)
 
+        # ── Definir marcas ──────────────────────────────────────────────────
+        _state = orc.load_state(run_dir)
+        _profiles = sorted({
+            item.get("profile", "") for item in _state["items"]
+            if item.get("profile")
+        })
+        if _profiles:
+            _saved = _state.get("brand_mapping", {})
+            _expanded = not _saved
+            with st.expander("Definir nombres de marca", expanded=_expanded):
+                st.caption(
+                    "Cada perfil de red social se asignará a la marca que definas aquí. "
+                    "Guarda antes de generar el análisis."
+                )
+                with st.form("brand_mapping_{}".format(selected_run)):
+                    cols = st.columns(2)
+                    _mapping = {}
+                    for idx, profile in enumerate(_profiles):
+                        default = _saved.get(profile) or cons.normalize_brand(profile) or profile
+                        _mapping[profile] = cols[idx % 2].text_input(
+                            profile, value=default,
+                            key="bm_{}_{}".format(selected_run, profile),
+                        )
+                    if st.form_submit_button("Guardar marcas", type="primary"):
+                        _state["brand_mapping"] = {
+                            p: v.strip() or cons.normalize_brand(p)
+                            for p, v in _mapping.items()
+                        }
+                        orc.save_state(run_dir, _state)
+                        st.success("Marcas guardadas.")
+
         @st.fragment(run_every="3s")
         def render_results(run_dir, run_name):
             state = orc.load_state(run_dir)

@@ -107,6 +107,10 @@ def build_consolidated(run_dir):
     comentários exportado com os metadados do post correspondente."""
     state = orc.load_state(run_dir)
     source_file = state.get("source_file")
+    # brand_mapping: {profile_original → nome_de_marca} definido pelo usuário na UI
+    raw_mapping = state.get("brand_mapping", {})
+    brand_mapping = {k.lower(): v for k, v in raw_mapping.items() if v and v.strip()}
+
     posts_df = sr.read_links(source_file)
     posts_by_link = posts_df.set_index("link")
 
@@ -132,7 +136,10 @@ def build_consolidated(run_dir):
         link = item["link"]
         post_meta = posts_by_link.loc[link] if link in posts_by_link.index else {}
 
-        comments["marca"] = normalize_brand(post_meta.get("profile") or item.get("profile"))
+        profile = post_meta.get("profile") or item.get("profile")
+        profile_key = (profile or "").lower()
+        marca = brand_mapping.get(profile_key) or normalize_brand(profile)
+        comments["marca"] = marca
         comments["red"] = item.get("network") or post_meta.get("network")
         comments["link_post"] = link
         comments["fecha_post"] = post_meta.get("date")
