@@ -160,6 +160,32 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
             else:
                 st.caption("No hay suficiente texto para generar la nube.")
 
+    wc_search = st.text_input(
+        "Buscar palabra en los comentarios",
+        key="{}_wc_search".format(key_prefix),
+        placeholder="Escribe una palabra de la nube...",
+    )
+    if wc_search.strip():
+        word = wc_search.strip().lower()
+        matches = df[df["Comentario"].str.lower().str.contains(word, na=False)]
+        if matches.empty:
+            st.caption("No se encontraron comentarios con '{}'.".format(word))
+        else:
+            if "Likes" in matches.columns:
+                matches = matches.sort_values("Likes", ascending=False)
+            top = matches.head(10)
+            show = [c for c in ["Red", "Marca", "Autor", "Comentario", "Likes", "Sentimiento"]
+                    if c in top.columns]
+            if "Link del post" in top.columns:
+                show.append("Link del post")
+            st.caption("{} comentarios con '{}' — mostrando top 10:".format(len(matches), word))
+            st.dataframe(
+                top[show], hide_index=True, use_container_width=True,
+                column_config={
+                    "Link del post": st.column_config.LinkColumn("Link", display_text="🔗", width="small"),
+                },
+            )
+
     st.subheader("Nube de palabras por sentimiento")
     network_options = ["Todas"] + networks
     selected_network = st.selectbox(
