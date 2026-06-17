@@ -535,8 +535,8 @@ def format_duration(seconds):
     return "{}s".format(s)
 
 
-tab_export, tab_runs, tab_upload = st.tabs(
-    ["Nueva exportación", "Ejecuciones y análisis", "Analizar base propia"]
+tab_export, tab_runs, tab_analysis = st.tabs(
+    ["Nueva exportación", "Ejecuciones", "Análisis"]
 )
 
 with tab_export:
@@ -732,177 +732,226 @@ with tab_runs:
                         st.success("Marcas guardadas.")
 
         @st.fragment(run_every="3s")
-        def render_results(run_dir, run_name):
+        def render_run_downloads(run_dir, run_name):
             state = orc.load_state(run_dir)
             done_count = sum(1 for item in state["items"] if item["status"] == "done")
 
-            if done_count > 0:
-                zip_bytes = make_zip_bytes_cached(run_dir, done_count)
-                st.download_button(
-                    "Descargar resultados (ZIP)",
-                    data=zip_bytes,
-                    file_name="export_{}.zip".format(run_name),
-                    mime="application/zip",
-                )
-
-            st.header("Análisis de sentimiento")
-
             if done_count == 0:
-                st.info("Todavía no hay comentarios exportados para analizar.")
                 return
 
-            st.caption("{} post(s) con comentarios exportados disponibles para analizar.".format(done_count))
+            zip_bytes = make_zip_bytes_cached(run_dir, done_count)
+            dl_col, analyze_col = st.columns(2)
+            dl_col.download_button(
+                "Descargar resultados (ZIP)",
+                data=zip_bytes,
+                file_name="export_{}.zip".format(run_name),
+                mime="application/zip",
+            )
+            with analyze_col:
+                if st.button("Analizar ahora →", key="go_analyze_{}".format(run_name),
+                             type="primary"):
+                    st.session_state["analyze_run"] = run_name
 
-            running = ra.is_analysis_running(run_dir)
-            analysis_state = ra.load_analysis_state(run_dir)
+            if st.session_state.get("analyze_run") == run_name:
+                st.info("Ve a la pestaña **Análisis** para ver el dashboard.")
 
-            if running:
-                stage = (analysis_state or {}).get("stage", "consolidando")
-                st.caption(ANALYSIS_STAGE_LABELS.get(stage, stage))
-                if stage == "analizando_sentimiento" and analysis_state.get("total"):
-                    processed = analysis_state.get("processed", 0)
-                    total = analysis_state["total"]
-                    st.progress(processed / total if total else 0)
-                    st.caption("{}/{} comentarios".format(processed, total))
-                else:
-                    st.progress(0)
-            else:
-                label = "Generar análisis"
-                if analysis_state and analysis_state.get("stage") == "completado":
-                    label = "Regenerar análisis"
+        render_run_downloads(run_dir, selected_run)
 
-                use_ai = st.checkbox(
-                    "Usar análisis con IA (Claude Haiku)",
-                    key="use_ai_{}".format(run_name),
-                    help=(
-                        "Analiza cada comentario con Claude (Anthropic) en lugar del "
-                        "modelo local. Suele entender mejor el sarcasmo, la jerga y "
-                        "el contexto, pero tiene un costo por uso de la API y requiere "
-                        "ANTHROPIC_API_KEY configurada en el archivo .env."
-                    ),
-                )
 
-                if st.button(label, key="analyze_{}".format(run_name), type="primary"):
-                    launch_analysis(run_dir, "ai" if use_ai else "local")
-                    st.rerun()
+def _runs_with_exports():
+    """Retorna runs que tienen al menos 1 link exportado."""
+    result = []
+    for name in list_runs():
+        rd = os.path.join(RUNS_DIR, name)
+        state = orc.load_state(rd)
+        if any(i["status"] == "done" for i in state["items"]):
+            result.append(name)
+    return result
 
-                if analysis_state and analysis_state.get("stage") == "error":
-                    st.error("Error al generar el análisis: {}".format(analysis_state.get("error")))
 
-            if analysis_state and analysis_state.get("stage") == "completado":
-                engine_label = "IA (Claude Haiku)" if analysis_state.get("engine") == "ai" else "modelo local (pysentimiento)"
-                st.caption("Análisis generado con: {}".format(engine_label))
+with tab_analysis:
+    source = st.radio(
+        "Fuente de datos",
+        ["Ejecución exportada", "Subir base propia"],
+        horizontal=True,
+        key="analysis_source",
+    )
 
-                report_path = os.path.join(run_dir, analysis_state["report_file"])
-                corrected_path = os.path.join(run_dir, CORRECTED_FILENAME)
+    if source == "Ejecución exportada":
+        run_options = _runs_with_exports()
+        if not run_options:
+            st.info("No hay ejecuciones con datos exportados.")
+        else:
+            default_run = st.session_state.get("analyze_run")
+            default_idx = run_options.index(default_run) if default_run in run_options else 0
+            selected = st.selectbox("Ejecución", run_options, index=default_idx,
+                                    key="analysis_run_select")
+            run_dir = os.path.join(RUNS_DIR, selected)
 
-                with st.expander("📝 Base corregida manualmente"):
-                    if os.path.exists(corrected_path):
-                        st.success("Usando la base corregida que subiste manualmente.")
-                        if st.button("Quitar base corregida", key="remove_corrected_{}".format(run_name)):
-                            os.remove(corrected_path)
-                            st.rerun()
+            @st.fragment(run_every="3s")
+            def render_analysis(run_dir, run_name):
+                state = orc.load_state(run_dir)
+                done_count = sum(1 for item in state["items"] if item["status"] == "done")
+
+                st.caption("{} post(s) con comentarios exportados.".format(done_count))
+
+                running = ra.is_analysis_running(run_dir)
+                analysis_state = ra.load_analysis_state(run_dir)
+
+                if running:
+                    stage = (analysis_state or {}).get("stage", "consolidando")
+                    st.caption(ANALYSIS_STAGE_LABELS.get(stage, stage))
+                    if stage == "analizando_sentimiento" and analysis_state.get("total"):
+                        processed = analysis_state.get("processed", 0)
+                        total = analysis_state["total"]
+                        st.progress(processed / total if total else 0)
+                        st.caption("{}/{} comentarios".format(processed, total))
                     else:
-                        st.caption(
-                            "Descarga el XLSX de abajo, corrige a mano la columna "
-                            "'Sentimiento' y vuelve a subirlo aquí: los gráficos y "
-                            "métricas usarán esa versión corregida."
+                        st.progress(0)
+                else:
+                    label = "Generar análisis"
+                    if analysis_state and analysis_state.get("stage") == "completado":
+                        label = "Regenerar análisis"
+
+                    use_ai = st.checkbox(
+                        "Usar análisis con IA (Claude Haiku)",
+                        key="use_ai_analysis_{}".format(run_name),
+                        help=(
+                            "Analiza cada comentario con Claude (Anthropic) en lugar del "
+                            "modelo local. Suele entender mejor el sarcasmo, la jerga y "
+                            "el contexto, pero tiene un costo por uso de la API y requiere "
+                            "ANTHROPIC_API_KEY configurada."
+                        ),
+                    )
+
+                    if st.button(label, key="analyze_btn_{}".format(run_name), type="primary"):
+                        launch_analysis(run_dir, "ai" if use_ai else "local")
+                        st.rerun()
+
+                    if analysis_state and analysis_state.get("stage") == "error":
+                        st.error("Error al generar el análisis: {}".format(
+                            analysis_state.get("error")))
+
+                if analysis_state and analysis_state.get("stage") == "completado":
+                    engine_label = ("IA (Claude Haiku)" if analysis_state.get("engine") == "ai"
+                                    else "modelo local (pysentimiento)")
+                    st.caption("Análisis generado con: {}".format(engine_label))
+
+                    report_path = os.path.join(run_dir, analysis_state["report_file"])
+                    corrected_path = os.path.join(run_dir, CORRECTED_FILENAME)
+
+                    with st.expander("Base corregida manualmente"):
+                        if os.path.exists(corrected_path):
+                            st.success("Usando la base corregida que subiste manualmente.")
+                            if st.button("Quitar base corregida",
+                                         key="remove_corrected_a_{}".format(run_name)):
+                                os.remove(corrected_path)
+                                st.rerun()
+                        else:
+                            st.caption(
+                                "Descarga el XLSX de abajo, corrige a mano la columna "
+                                "'Sentimiento' y vuelve a subirlo aquí."
+                            )
+
+                        uploader_key_name = "corrected_upload_key_a_{}".format(run_name)
+                        if uploader_key_name not in st.session_state:
+                            st.session_state[uploader_key_name] = 0
+
+                        uploaded_corrected = st.file_uploader(
+                            "Subir XLSX corregido", type=["xlsx"],
+                            key="corrected_a_{}_{}".format(
+                                run_name, st.session_state[uploader_key_name]),
+                        )
+                        if uploaded_corrected is not None:
+                            try:
+                                test_df = pd.read_excel(
+                                    uploaded_corrected, sheet_name="Comentarios")
+                            except Exception as e:
+                                st.error("Error al leer el archivo: {}".format(e))
+                                test_df = None
+
+                            if test_df is not None:
+                                required = {"Red", "Sentimiento", "Comentario"}
+                                if not required.issubset(test_df.columns):
+                                    st.error(
+                                        "El archivo debe tener una hoja 'Comentarios' con "
+                                        "al menos las columnas: Red, Sentimiento, Comentario."
+                                    )
+                                else:
+                                    with open(corrected_path, "wb") as f:
+                                        f.write(uploaded_corrected.getbuffer())
+                                    st.session_state[uploader_key_name] += 1
+                                    st.rerun()
+
+                    active_path = (corrected_path if os.path.exists(corrected_path)
+                                   else report_path)
+
+                    if os.path.exists(active_path):
+                        mtime = os.path.getmtime(active_path)
+
+                        _run_state = orc.load_state(run_dir)
+                        _brand_map = _run_state.get("brand_mapping", {})
+                        render_sentiment_dashboard(
+                            active_path, mtime, key_prefix="a_{}".format(run_name),
+                            brand_mapping=_brand_map, show_brand_comparison=True)
+
+                        with open(active_path, "rb") as f:
+                            report_bytes = f.read()
+                        st.download_button(
+                            "Descargar análisis (XLSX)",
+                            data=report_bytes,
+                            file_name="analisis_{}.xlsx".format(run_name),
+                            mime="application/vnd.openxmlformats-officedocument"
+                                 ".spreadsheetml.sheet",
                         )
 
-                    uploader_key_name = "corrected_uploader_key_{}".format(run_name)
-                    if uploader_key_name not in st.session_state:
-                        st.session_state[uploader_key_name] = 0
+            render_analysis(run_dir, selected)
 
-                    uploaded_corrected = st.file_uploader(
-                        "Subir XLSX corregido", type=["xlsx"],
-                        key="corrected_{}_{}".format(run_name, st.session_state[uploader_key_name]),
+    else:
+        st.caption(
+            "Sube un archivo XLSX con una hoja 'Comentarios' en el mismo formato "
+            "que el análisis generado por esta herramienta (columnas Red, Marca, "
+            "Sentimiento, Comentario, etc.)."
+        )
+
+        if "upload_base_uploader_key" not in st.session_state:
+            st.session_state["upload_base_uploader_key"] = 0
+
+        base_path = os.path.join(UPLOADS_DIR, UPLOADED_BASE_FILENAME)
+
+        uploaded_base = st.file_uploader(
+            "Archivo XLSX", type=["xlsx"],
+            key="upload_base_{}".format(st.session_state["upload_base_uploader_key"]),
+        )
+
+        if uploaded_base is not None:
+            try:
+                test_df = pd.read_excel(uploaded_base, sheet_name="Comentarios")
+            except Exception as e:
+                st.error("Error al leer el archivo: {}".format(e))
+                test_df = None
+
+            if test_df is not None:
+                required = {"Red", "Sentimiento", "Comentario"}
+                if not required.issubset(test_df.columns):
+                    st.error(
+                        "El archivo debe tener una hoja 'Comentarios' con al menos "
+                        "las columnas: Red, Sentimiento, Comentario."
                     )
-                    if uploaded_corrected is not None:
-                        try:
-                            test_df = pd.read_excel(uploaded_corrected, sheet_name="Comentarios")
-                        except Exception as e:
-                            st.error("Error al leer el archivo: {}".format(e))
-                            test_df = None
+                else:
+                    with open(base_path, "wb") as f:
+                        f.write(uploaded_base.getbuffer())
+                    st.session_state["upload_base_uploader_key"] += 1
+                    st.rerun()
 
-                        if test_df is not None:
-                            required = {"Red", "Sentimiento", "Comentario"}
-                            if not required.issubset(test_df.columns):
-                                st.error(
-                                    "El archivo debe tener una hoja 'Comentarios' con "
-                                    "al menos las columnas: Red, Sentimiento, Comentario."
-                                )
-                            else:
-                                with open(corrected_path, "wb") as f:
-                                    f.write(uploaded_corrected.getbuffer())
-                                st.session_state[uploader_key_name] += 1
-                                st.rerun()
-
-                active_path = corrected_path if os.path.exists(corrected_path) else report_path
-
-                if os.path.exists(active_path):
-                    mtime = os.path.getmtime(active_path)
-
-                    _run_state = orc.load_state(run_dir)
-                    _brand_map = _run_state.get("brand_mapping", {})
-                    render_sentiment_dashboard(active_path, mtime, key_prefix=run_name,
-                                              brand_mapping=_brand_map)
-
-                    with open(active_path, "rb") as f:
-                        report_bytes = f.read()
-                    st.download_button(
-                        "Descargar análisis (XLSX)",
-                        data=report_bytes,
-                        file_name="analisis_{}.xlsx".format(run_name),
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    )
-
-        render_results(run_dir, selected_run)
-
-
-with tab_upload:
-    st.caption(
-        "Sube un archivo XLSX con una hoja 'Comentarios' en el mismo formato "
-        "que el análisis generado por esta herramienta (columnas Red, Marca, "
-        "Sentimiento, Comentario, etc.). Si la base tiene más de una marca, "
-        "también se muestran gráficos comparando las marcas."
-    )
-
-    if "upload_base_uploader_key" not in st.session_state:
-        st.session_state["upload_base_uploader_key"] = 0
-
-    base_path = os.path.join(UPLOADS_DIR, UPLOADED_BASE_FILENAME)
-
-    uploaded_base = st.file_uploader(
-        "Archivo XLSX", type=["xlsx"],
-        key="upload_base_{}".format(st.session_state["upload_base_uploader_key"]),
-    )
-
-    if uploaded_base is not None:
-        try:
-            test_df = pd.read_excel(uploaded_base, sheet_name="Comentarios")
-        except Exception as e:
-            st.error("Error al leer el archivo: {}".format(e))
-            test_df = None
-
-        if test_df is not None:
-            required = {"Red", "Sentimiento", "Comentario"}
-            if not required.issubset(test_df.columns):
-                st.error(
-                    "El archivo debe tener una hoja 'Comentarios' con al menos "
-                    "las columnas: Red, Sentimiento, Comentario."
-                )
-            else:
-                with open(base_path, "wb") as f:
-                    f.write(uploaded_base.getbuffer())
-                st.session_state["upload_base_uploader_key"] += 1
+        if os.path.exists(base_path):
+            if st.button("Quitar base subida"):
+                os.remove(base_path)
                 st.rerun()
 
-    if os.path.exists(base_path):
-        if st.button("Quitar base subida"):
-            os.remove(base_path)
-            st.rerun()
-
-        mtime = os.path.getmtime(base_path)
-        render_sentiment_dashboard(base_path, mtime, key_prefix="upload_base", show_brand_comparison=True)
-    else:
-        st.info("Sube un archivo XLSX para ver el análisis.")
+            mtime = os.path.getmtime(base_path)
+            render_sentiment_dashboard(
+                base_path, mtime, key_prefix="upload_base",
+                show_brand_comparison=True)
+        else:
+            st.info("Sube un archivo XLSX para ver el análisis.")
