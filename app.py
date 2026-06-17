@@ -121,7 +121,8 @@ def build_word_tree_data(report_path, mtime, root_phrase, tree_version="1"):
                                   likes=likes_col, sentiments=sent_col)
 
 
-def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_comparison=False):
+def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_comparison=False,
+                               brand_mapping=None):
     df = load_report_data(active_path, mtime)
 
     total = len(df)
@@ -200,9 +201,27 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
 
     st.subheader("Comentarios más interactuados")
     if df["Likes"].notna().any():
-        top_liked = df.dropna(subset=["Likes"]).sort_values("Likes", ascending=False).head(10)
+        filter_cols = st.columns(2)
+        marcas_disp = sorted(df["Marca"].dropna().unique().tolist()) if "Marca" in df.columns else []
+        redes_disp = sorted(df["Red"].dropna().unique().tolist()) if "Red" in df.columns else []
+        sel_marca = filter_cols[0].multiselect(
+            "Marca", marcas_disp, default=marcas_disp,
+            key="{}_interacted_marca".format(key_prefix),
+        ) if marcas_disp else marcas_disp
+        sel_red = filter_cols[1].multiselect(
+            "Red", redes_disp, default=redes_disp,
+            key="{}_interacted_red".format(key_prefix),
+        ) if redes_disp else redes_disp
+
+        filtered = df.dropna(subset=["Likes"])
+        if sel_marca and "Marca" in filtered.columns:
+            filtered = filtered[filtered["Marca"].isin(sel_marca)]
+        if sel_red and "Red" in filtered.columns:
+            filtered = filtered[filtered["Red"].isin(sel_red)]
+
+        top_liked = filtered.sort_values("Likes", ascending=False).head(10)
         show_cols = [
-            c for c in ["Red", "Autor", "Comentario", "Likes", "Sentimiento", "Fecha del comentario"]
+            c for c in ["Red", "Marca", "Autor", "Comentario", "Likes", "Sentimiento", "Fecha del comentario"]
             if c in top_liked.columns
         ]
         st.dataframe(top_liked[show_cols], hide_index=True, use_container_width=True)
@@ -216,9 +235,19 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     )
     with_author = df.dropna(subset=["Autor"]) if "Autor" in df.columns else df.iloc[0:0]
     if not with_author.empty and "Marca" in with_author.columns:
-        own_account = with_author.apply(
-            lambda r: cons.normalize_brand(r["Autor"]) == r["Marca"], axis=1
-        )
+        if brand_mapping:
+            own_names = set()
+            for profile, brand in brand_mapping.items():
+                own_names.add(profile.lower())
+                if brand:
+                    own_names.add(brand.lower())
+            own_account = with_author["Autor"].apply(
+                lambda a: str(a).strip().lower() in own_names
+            )
+        else:
+            own_account = with_author.apply(
+                lambda r: cons.normalize_brand(r["Autor"]) == r["Marca"], axis=1
+            )
         with_author = with_author[~own_account]
     det_col, lover_col = st.columns(2)
 
@@ -758,7 +787,10 @@ with tab_runs:
                 if os.path.exists(active_path):
                     mtime = os.path.getmtime(active_path)
 
-                    render_sentiment_dashboard(active_path, mtime, key_prefix=run_name)
+                    _run_state = orc.load_state(run_dir)
+                    _brand_map = _run_state.get("brand_mapping", {})
+                    render_sentiment_dashboard(active_path, mtime, key_prefix=run_name,
+                                              brand_mapping=_brand_map)
 
                     with open(active_path, "rb") as f:
                         report_bytes = f.read()
