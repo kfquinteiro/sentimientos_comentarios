@@ -96,22 +96,21 @@ def build_report(df, output_path):
     bar.set_categories(Reference(ws, min_col=1, min_row=by_network_start + 1, max_row=by_network_end))
     ws.add_chart(bar, "E18")
 
-    # Tabla 3: sentimiento en el tiempo (por semana del comentario)
+    # Tabla 3: sentimiento en el tiempo (por mes del comentario)
     over_time_start = by_network_end + 2
     with_date = df.dropna(subset=["fecha_comentario"]).copy()
     if not with_date.empty:
-        with_date["semana"] = with_date["fecha_comentario"].dt.to_period("W").apply(lambda p: p.start_time.date())
+        with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
         over_time = (
-            with_date.groupby("semana")["sentimiento"]
+            with_date.groupby("mes")["sentimiento"]
             .value_counts().unstack(fill_value=0)
             .reindex(columns=SENTIMENT_ORDER, fill_value=0)
             .reset_index()
-            .sort_values("semana")
+            .sort_values("mes")
         )
-        over_time["semana"] = over_time["semana"].astype(str)
-        over_time = over_time.rename(columns={"semana": "Semana"})
+        over_time = over_time.rename(columns={"mes": "Mes"})
     else:
-        over_time = pd.DataFrame(columns=["Semana"] + SENTIMENT_ORDER)
+        over_time = pd.DataFrame(columns=["Mes"] + SENTIMENT_ORDER)
     over_time_end = _write_dataframe(ws, over_time, over_time_start)
 
     if over_time_end > over_time_start:

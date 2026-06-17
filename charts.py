@@ -116,14 +116,14 @@ def line_over_time(df):
     with_date = df.dropna(subset=["fecha_comentario"]).copy()
     if with_date.empty:
         return None
-    with_date["semana"] = with_date["fecha_comentario"].dt.to_period("W").apply(lambda p: p.start_time)
-    over_time = with_date.groupby(["semana", "sentimiento"]).size().reset_index(name="Cantidad")
+    with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
+    over_time = with_date.groupby(["mes", "sentimiento"]).size().reset_index(name="Cantidad")
     return px.line(
-        over_time, x="semana", y="Cantidad", color="sentimiento",
+        over_time, x="mes", y="Cantidad", color="sentimiento",
         category_orders={"sentimiento": SENTIMENT_ORDER},
         color_discrete_map=SENTIMENT_COLORS,
         title="Sentimiento en el tiempo", markers=True,
-        labels={"semana": "Semana", "sentimiento": "Sentimiento"},
+        labels={"mes": "Mes", "sentimiento": "Sentimiento"},
     )
 
 
@@ -141,14 +141,14 @@ def line_over_time_by_brand(df):
     with_date = df.dropna(subset=["fecha_comentario"]).copy()
     if with_date.empty:
         return None
-    with_date["semana"] = with_date["fecha_comentario"].dt.to_period("W").apply(lambda p: p.start_time)
-    over_time = with_date.groupby(["semana", "marca", "sentimiento"]).size().reset_index(name="Cantidad")
+    with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
+    over_time = with_date.groupby(["mes", "marca", "sentimiento"]).size().reset_index(name="Cantidad")
     return px.line(
-        over_time, x="semana", y="Cantidad", color="sentimiento", facet_col="marca", facet_col_wrap=2,
+        over_time, x="mes", y="Cantidad", color="sentimiento", facet_col="marca", facet_col_wrap=2,
         category_orders={"sentimiento": SENTIMENT_ORDER},
         color_discrete_map=SENTIMENT_COLORS,
         title="Sentimiento por marca en el tiempo", markers=True,
-        labels={"semana": "Semana", "sentimiento": "Sentimiento", "marca": "Marca"},
+        labels={"mes": "Mes", "sentimiento": "Sentimiento", "marca": "Marca"},
     )
 
 
@@ -156,14 +156,14 @@ def line_over_time_by_network(df):
     with_date = df.dropna(subset=["fecha_comentario"]).copy()
     if with_date.empty:
         return None
-    with_date["semana"] = with_date["fecha_comentario"].dt.to_period("W").apply(lambda p: p.start_time)
-    over_time = with_date.groupby(["semana", "red", "sentimiento"]).size().reset_index(name="Cantidad")
+    with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
+    over_time = with_date.groupby(["mes", "red", "sentimiento"]).size().reset_index(name="Cantidad")
     return px.line(
-        over_time, x="semana", y="Cantidad", color="sentimiento", facet_col="red", facet_col_wrap=2,
+        over_time, x="mes", y="Cantidad", color="sentimiento", facet_col="red", facet_col_wrap=2,
         category_orders={"sentimiento": SENTIMENT_ORDER},
         color_discrete_map=SENTIMENT_COLORS,
         title="Sentimiento por red en el tiempo", markers=True,
-        labels={"semana": "Semana", "sentimiento": "Sentimiento", "red": "Red"},
+        labels={"mes": "Mes", "sentimiento": "Sentimiento", "red": "Red"},
     )
 
 
