@@ -70,6 +70,15 @@ def _clean_text_for_wordcloud(text):
     return " ".join(words)
 
 
+def top_words(texts, n=20):
+    """Retorna las n palabras más frecuentes (misma limpieza que la nube)."""
+    from collections import Counter
+    all_words = []
+    for text in texts:
+        all_words.extend(_clean_text_for_wordcloud(str(text)).split())
+    return Counter(all_words).most_common(n)
+
+
 def _wiper_color_func(word, font_size, position, orientation, random_state=None, **kwargs):
     if random_state is not None:
         return random_state.choice(WIPER_PALETTE)
