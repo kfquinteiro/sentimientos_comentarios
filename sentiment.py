@@ -32,7 +32,7 @@ def analyze(texts, chunk_size=200, on_progress=None):
         chunk = texts[i:i + chunk_size]
         results = analyzer.predict(chunk)
         sentiments.extend(LABEL_MAP.get(r.output, r.output) for r in results)
-        confidences.extend(round(r.probas[r.output], 4) for r in results)
+        confidences.extend(round(r.probas[r.output] * 100) for r in results)
         if on_progress:
             on_progress(min(i + chunk_size, len(texts)), len(texts))
 
