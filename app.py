@@ -25,6 +25,7 @@ from i18n import t
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_DIR = os.path.join(PROJECT_DIR, "input")
 RUNS_DIR = os.path.join(PROJECT_DIR, "runs")
+CURRENT_RUN_DIR = os.path.join(RUNS_DIR, "current")
 UPLOADS_DIR = os.path.join(PROJECT_DIR, "uploads")
 
 os.makedirs(RUNS_DIR, exist_ok=True)
@@ -584,16 +585,6 @@ with _col_lang:
         st.rerun()
 
 
-def list_runs():
-    if not os.path.isdir(RUNS_DIR):
-        return []
-    runs = []
-    for name in sorted(os.listdir(RUNS_DIR), reverse=True):
-        run_dir = os.path.join(RUNS_DIR, name)
-        if os.path.isfile(orc.state_path(run_dir)):
-            runs.append(name)
-    return runs
-
 
 def is_running(run_dir):
     return os.path.exists(os.path.join(run_dir, "running.flag"))
@@ -746,42 +737,28 @@ with tab_export:
                     st.dataframe(counts, hide_index=True, use_container_width=True)
                 st.dataframe(links_df.head(20), use_container_width=True)
 
+                has_existing = os.path.isfile(orc.state_path(CURRENT_RUN_DIR))
+                if has_existing:
+                    st.warning(_t("replace_warning"))
                 if st.button(_t("start_export"), type="primary"):
-                    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    run_dir = os.path.join(RUNS_DIR, run_id)
-                    orc.init_run(run_dir, links_df, source_file=save_path,
+                    if has_existing:
+                        files_path = orc.files_dir(CURRENT_RUN_DIR)
+                        if os.path.exists(files_path):
+                            shutil.rmtree(files_path)
+                        stop_path = orc.stop_flag_path(CURRENT_RUN_DIR)
+                        if os.path.exists(stop_path):
+                            os.remove(stop_path)
+                    orc.init_run(CURRENT_RUN_DIR, links_df, source_file=save_path,
                                  column_mapping=mapping)
-                    launch_run(run_dir)
-                    st.session_state["active_run"] = run_id
+                    launch_run(CURRENT_RUN_DIR)
                     st.rerun()
 
 
 with tab_runs:
-    runs = list_runs()
-    if not runs:
+    run_dir = CURRENT_RUN_DIR
+    if not os.path.isfile(orc.state_path(run_dir)):
         st.info(_t("no_runs"))
     else:
-        active_run = st.session_state.get("active_run")
-        default_index = runs.index(active_run) if active_run in runs else 0
-        selected_run = st.selectbox(_t("execution"), runs, index=default_index)
-        run_dir = os.path.join(RUNS_DIR, selected_run)
-
-        with st.expander(_t("delete_execution")):
-            st.warning(_t("delete_warning").format(selected_run))
-            run_active = is_running(run_dir) or ra.is_analysis_running(run_dir)
-            if run_active:
-                st.caption(_t("cannot_delete_running"))
-            confirm_delete = st.checkbox(
-                _t("delete_confirm"),
-                key="confirm_delete_{}".format(selected_run),
-                disabled=run_active,
-            )
-            with st.container(key="delete_run_button"):
-                if st.button(_t("delete_button"), disabled=not confirm_delete or run_active, type="primary"):
-                    shutil.rmtree(run_dir)
-                    st.session_state.pop("active_run", None)
-                    st.rerun()
-
         with st.expander(_t("reset_execution")):
             st.warning(_t("reset_warning"))
             run_active = is_running(run_dir) or ra.is_analysis_running(run_dir)
@@ -789,7 +766,7 @@ with tab_runs:
                 st.caption(_t("cannot_delete_running"))
             confirm_reset = st.checkbox(
                 _t("reset_confirm"),
-                key="confirm_reset_{}".format(selected_run),
+                key="confirm_reset",
                 disabled=run_active,
             )
             with st.container(key="reset_run_button"):
@@ -819,7 +796,7 @@ with tab_runs:
         _status_refresh = "5s" if is_running(run_dir) else None
 
         @st.fragment(run_every=_status_refresh)
-        def render_run_status(run_dir, run_name):
+        def render_run_status(run_dir):
             state = orc.load_state(run_dir)
             items = state["items"]
             total = len(items)
@@ -857,11 +834,11 @@ with tab_runs:
             st.dataframe(status_table, hide_index=True, use_container_width=True)
 
             if running:
-                if st.button(_t("stop"), key="stop_{}".format(run_name)):
+                if st.button(_t("stop"), key="stop_current"):
                     open(orc.stop_flag_path(run_dir), "w").close()
                     st.rerun()
             elif finished < total:
-                if st.button(_t("continue"), key="resume_{}".format(run_name)):
+                if st.button(_t("continue"), key="resume_current"):
                     stop_path = orc.stop_flag_path(run_dir)
                     if os.path.exists(stop_path):
                         os.remove(stop_path)
@@ -873,7 +850,7 @@ with tab_runs:
                 st.caption(_t("failed_jobs_caption").format(len(failed_jobs)))
                 if st.button(
                     _t("retry_failed_jobs"),
-                    key="retry_failed_{}".format(run_name),
+                    key="retry_failed_current",
                     disabled=running,
                 ):
                     for item in failed_jobs:
@@ -908,7 +885,7 @@ with tab_runs:
 
                 st.dataframe(df, use_container_width=True)
 
-        render_run_status(run_dir, selected_run)
+        render_run_status(run_dir)
 
         # ── Definir marcas ──────────────────────────────────────────────────
         _state = orc.load_state(run_dir)
@@ -921,14 +898,14 @@ with tab_runs:
             _expanded = not _saved
             with st.expander(_t("define_brands"), expanded=_expanded):
                 st.caption(_t("define_brands_caption"))
-                with st.form("brand_mapping_{}".format(selected_run)):
+                with st.form("brand_mapping"):
                     cols = st.columns(2)
                     _mapping = {}
                     for idx, profile in enumerate(_profiles):
                         default = _saved.get(profile) or cons.normalize_brand(profile) or profile
                         _mapping[profile] = cols[idx % 2].text_input(
                             profile, value=default,
-                            key="bm_{}_{}".format(selected_run, profile),
+                            key="bm_{}".format(profile),
                         )
                     if st.form_submit_button(_t("save_brands"), type="primary"):
                         _state["brand_mapping"] = {
@@ -941,7 +918,7 @@ with tab_runs:
         _dl_refresh = "3s" if is_running(run_dir) else None
 
         @st.fragment(run_every=_dl_refresh)
-        def render_run_downloads(run_dir, run_name):
+        def render_run_downloads(run_dir):
             state = orc.load_state(run_dir)
             done_count = sum(1 for item in state["items"] if item["status"] == "done")
 
@@ -953,29 +930,25 @@ with tab_runs:
             dl_col.download_button(
                 _t("download_zip"),
                 data=zip_bytes,
-                file_name="export_{}.zip".format(run_name),
+                file_name="export.zip",
                 mime="application/zip",
             )
             with analyze_col:
-                if st.button(_t("analyze_now"), key="go_analyze_{}".format(run_name),
+                if st.button(_t("analyze_now"), key="go_analyze",
                              type="primary", use_container_width=True):
-                    st.session_state["analyze_run"] = run_name
+                    st.session_state["analyze_run"] = True
 
-            if st.session_state.get("analyze_run") == run_name:
+            if st.session_state.get("analyze_run"):
                 st.info(_t("go_to_analysis"))
 
-        render_run_downloads(run_dir, selected_run)
+        render_run_downloads(run_dir)
 
 
-def _runs_with_exports():
-    """Retorna runs que tienen al menos 1 link exportado."""
-    result = []
-    for name in list_runs():
-        rd = os.path.join(RUNS_DIR, name)
-        state = orc.load_state(rd)
-        if any(i["status"] == "done" for i in state["items"]):
-            result.append(name)
-    return result
+def _current_has_exports():
+    if not os.path.isfile(orc.state_path(CURRENT_RUN_DIR)):
+        return False
+    state = orc.load_state(CURRENT_RUN_DIR)
+    return any(i["status"] == "done" for i in state["items"])
 
 
 with tab_analysis:
@@ -988,20 +961,15 @@ with tab_analysis:
     )
 
     if source == _src_opts[0]:
-        run_options = _runs_with_exports()
-        if not run_options:
+        if not _current_has_exports():
             st.info(_t("no_runs_with_data"))
         else:
-            default_run = st.session_state.get("analyze_run")
-            default_idx = run_options.index(default_run) if default_run in run_options else 0
-            selected = st.selectbox(_t("execution"), run_options, index=default_idx,
-                                    key="analysis_run_select")
-            run_dir = os.path.join(RUNS_DIR, selected)
+            run_dir = CURRENT_RUN_DIR
 
             _analysis_refresh = "3s" if ra.is_analysis_running(run_dir) else None
 
             @st.fragment(run_every=_analysis_refresh)
-            def render_analysis(run_dir, run_name):
+            def render_analysis(run_dir):
                 state = orc.load_state(run_dir)
                 done_count = sum(1 for item in state["items"] if item["status"] == "done")
 
@@ -1027,11 +995,11 @@ with tab_analysis:
 
                     use_ai = st.checkbox(
                         _t("use_ai"),
-                        key="use_ai_analysis_{}".format(run_name),
+                        key="use_ai_analysis",
                         help=_t("use_ai_help"),
                     )
 
-                    if st.button(label, key="analyze_btn_{}".format(run_name), type="primary"):
+                    if st.button(label, key="analyze_btn", type="primary"):
                         launch_analysis(run_dir, "ai" if use_ai else "local")
                         st.rerun()
 
@@ -1051,20 +1019,20 @@ with tab_analysis:
                         if os.path.exists(corrected_path):
                             st.success(_t("using_corrected"))
                             if st.button(_t("remove_corrected"),
-                                         key="remove_corrected_a_{}".format(run_name)):
+                                         key="remove_corrected_a"):
                                 os.remove(corrected_path)
                                 st.rerun()
                         else:
                             st.caption(_t("upload_corrected_caption"))
 
-                        uploader_key_name = "corrected_upload_key_a_{}".format(run_name)
+                        uploader_key_name = "corrected_upload_key_a"
                         if uploader_key_name not in st.session_state:
                             st.session_state[uploader_key_name] = 0
 
                         uploaded_corrected = st.file_uploader(
                             _t("upload_corrected_xlsx"), type=["xlsx"],
-                            key="corrected_a_{}_{}".format(
-                                run_name, st.session_state[uploader_key_name]),
+                            key="corrected_a_{}".format(
+                                st.session_state[uploader_key_name]),
                         )
                         if uploaded_corrected is not None:
                             try:
@@ -1093,7 +1061,7 @@ with tab_analysis:
                         _run_state = orc.load_state(run_dir)
                         _brand_map = _run_state.get("brand_mapping", {})
                         render_sentiment_dashboard(
-                            active_path, mtime, key_prefix="a_{}".format(run_name),
+                            active_path, mtime, key_prefix="analysis",
                             brand_mapping=_brand_map, show_brand_comparison=True)
 
                         with open(active_path, "rb") as f:
@@ -1101,12 +1069,12 @@ with tab_analysis:
                         st.download_button(
                             _t("download_analysis"),
                             data=report_bytes,
-                            file_name="analisis_{}.xlsx".format(run_name),
+                            file_name="analisis.xlsx",
                             mime="application/vnd.openxmlformats-officedocument"
                                  ".spreadsheetml.sheet",
                         )
 
-            render_analysis(run_dir, selected)
+            render_analysis(run_dir)
 
     else:
         st.caption(_t("upload_any_file"))
@@ -1271,12 +1239,10 @@ def _resolve_clasif_path():
         horizontal=True, key="clasif_source",
     )
     if source == _clasif_src_opts[0]:
-        run_opts = _runs_with_exports()
-        if not run_opts:
+        if not _current_has_exports():
             st.info(_t("no_runs_with_analysis"))
             return None, {}
-        sel = st.selectbox(_t("execution"), run_opts, key="clasif_run")
-        run_dir = os.path.join(RUNS_DIR, sel)
+        run_dir = CURRENT_RUN_DIR
         analysis_state = ra.load_analysis_state(run_dir)
         if not analysis_state or analysis_state.get("stage") != "completado":
             st.info(_t("no_analysis_completed"))

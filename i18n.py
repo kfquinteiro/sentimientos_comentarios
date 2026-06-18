@@ -36,6 +36,10 @@ TEXTS = {
     "col_not_available": {"pt": "(não disponível)", "es": "(no disponible)"},
     "links_found": {"pt": "{} links encontrados", "es": "{} links encontrados"},
     "start_export": {"pt": "Iniciar exportação", "es": "Iniciar exportación"},
+    "replace_warning": {
+        "pt": "Já existe uma execução. Ao iniciar, ela será substituída pela nova.",
+        "es": "Ya existe una ejecución. Al iniciar, será reemplazada por la nueva.",
+    },
 
     # ── Tab Execuções ──
     "no_runs": {"pt": "Ainda não há execuções.", "es": "Aún no hay ejecuciones."},
