@@ -1288,13 +1288,26 @@ with tab_clasif:
             filtered = filtered[filtered["Link del post"] == c_link]
 
         # ── Paginação ──
-        pg1, pg2, pg3 = st.columns([1, 1, 2])
-        page_size = pg1.selectbox("Por página", [25, 50, 100], index=1,
-                                   key="clasif_pagesize")
+        page_size = st.selectbox("Por página", [25, 50, 100], index=1,
+                                  key="clasif_pagesize")
         total_pages = max(1, -(-len(filtered) // page_size))
-        page_num = pg2.number_input("Página", 1, total_pages, 1,
-                                     key="clasif_page")
-        pg3.caption("{} comentarios · {} páginas".format(len(filtered), total_pages))
+        if "clasif_page_num" not in st.session_state:
+            st.session_state["clasif_page_num"] = 1
+        if st.session_state["clasif_page_num"] > total_pages:
+            st.session_state["clasif_page_num"] = 1
+
+        pg_prev, pg_info, pg_next = st.columns([1, 2, 1])
+        if pg_prev.button("← Anterior", disabled=st.session_state["clasif_page_num"] <= 1,
+                          key="clasif_prev"):
+            st.session_state["clasif_page_num"] -= 1
+            st.rerun()
+        if pg_next.button("Siguiente →", disabled=st.session_state["clasif_page_num"] >= total_pages,
+                          key="clasif_next"):
+            st.session_state["clasif_page_num"] += 1
+            st.rerun()
+        page_num = st.session_state["clasif_page_num"]
+        pg_info.caption("Página {} de {} · {} comentarios".format(
+            page_num, total_pages, len(filtered)))
 
         start = (page_num - 1) * page_size
         page_slice = filtered.iloc[start:start + page_size].copy()
