@@ -1295,7 +1295,7 @@ with tab_clasif:
         page_slice = filtered.iloc[start:start + page_size].copy()
 
         show = [c for c in ["Red", "Marca", "Autor", "Comentario", "Likes",
-                            "_sent_display", "Tema"]
+                            "_sent_display", "Tema", "Link del post"]
                 if c in page_slice.columns]
         locked = [c for c in show if c not in ("_sent_display", "Tema")]
 
@@ -1311,6 +1311,9 @@ with tab_clasif:
                     "Tema",
                     options=topic_list,
                     required=True,
+                ),
+                "Link del post": st.column_config.LinkColumn(
+                    "Link", display_text="🔗", width="small",
                 ),
             },
             disabled=locked,
