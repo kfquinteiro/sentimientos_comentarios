@@ -128,13 +128,15 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     df = load_report_data(active_path, mtime)
 
     if brand_mapping and "Marca" in df.columns:
-        brand_fix = {}
+        _lower_map = {}
         for profile, desired in brand_mapping.items():
+            _lower_map[profile.strip().lower()] = desired
             auto = cons.normalize_brand(profile)
-            if auto and auto != desired:
-                brand_fix[auto] = desired
-        if brand_fix:
-            df["Marca"] = df["Marca"].replace(brand_fix)
+            if auto:
+                _lower_map[auto.lower()] = desired
+        df["Marca"] = df["Marca"].apply(
+            lambda m: _lower_map.get(str(m).strip().lower(), m) if pd.notna(m) else m
+        )
 
     total = len(df)
     counts = df["Sentimiento"].value_counts()
