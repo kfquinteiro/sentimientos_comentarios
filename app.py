@@ -31,26 +31,28 @@ os.makedirs(UPLOADS_DIR, exist_ok=True)
 UPLOADED_BASE_FILENAME = "base_comentarios.xlsx"
 FINISHED_STATUSES = {"done", "error", "timeout", "skipped"}
 
-STATUS_LABELS = {
-    "pending": "Pendiente",
-    "creating": "Creando",
-    "queueing": "En cola",
-    "progress": "En progreso",
-    "done": "Completado",
-    "error": "Error",
-    "timeout": "Tiempo agotado",
-    "skipped": "Omitido",
-}
+def _status_labels():
+    return {
+        "pending": _t("status_pending"),
+        "creating": _t("status_creating"),
+        "queueing": _t("status_queueing"),
+        "progress": _t("status_progress"),
+        "done": _t("status_done"),
+        "error": _t("status_error"),
+        "timeout": _t("status_timeout"),
+        "skipped": _t("status_skipped"),
+    }
 
-COLUMN_LABELS = {
-    "link": "Link",
-    "network": "Red",
-    "status": "Estado",
-    "total": "Comentarios",
-    "total_exported": "Comentarios recolectados",
-    "error": "Error",
-    "file_name": "Archivo",
-}
+def _column_labels():
+    return {
+        "link": _t("col_label_link"),
+        "network": _t("col_label_network"),
+        "status": _t("col_label_status"),
+        "total": _t("col_label_comments"),
+        "total_exported": _t("col_label_comments_collected"),
+        "error": _t("col_label_error"),
+        "file_name": _t("col_label_file"),
+    }
 
 
 def display_status(item):
@@ -59,19 +61,20 @@ def display_status(item):
     comentarios y posts eliminados/no disponibles, en vez de mostrar
     siempre "Error"."""
     status = item["status"]
+    labels = _status_labels()
     if status != "error":
-        return STATUS_LABELS.get(status, status)
+        return labels.get(status, status)
 
     error = item.get("error") or ""
     if item.get("guid") is None:
-        return STATUS_LABELS["error"]
+        return labels["error"]
     if "No comments have been found" in error or "No comments have been received" in error:
-        return "Sin comentarios"
+        return _t("status_no_comments")
     if "404 Client Error" in error and "/exports/" in error:
-        return "Sin comentarios"
+        return _t("status_no_comments")
     if "Cannot access specified post" in error or "Video unavailable" in error:
-        return "Post eliminado o no disponible"
-    return STATUS_LABELS["error"]
+        return _t("status_post_deleted")
+    return labels["error"]
 
 _STAGE_KEYS = {
     "consolidando": "stage_consolidating",
@@ -145,7 +148,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     total = len(df)
     counts = df["Sentimiento"].value_counts()
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Comentarios analizados", total)
+    col1.metric(_t("comments_analyzed"), total)
     _sent_html = (
         '<div style="text-align:center">'
         '<p style="font-size:0.85rem;color:#666;margin:0">{label}</p>'
@@ -165,21 +168,28 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     col1.plotly_chart(charts.donut_sentiment(chart_df), use_container_width=True)
     col2.plotly_chart(charts.bar_by_network(chart_df), use_container_width=True)
 
-    time_fig = charts.line_over_time(chart_df)
+    _time_marcas = ["Todas"] + sorted(chart_df["marca"].dropna().unique().tolist()) if "marca" in chart_df.columns else ["Todas"]
+    _time_marca = st.selectbox(
+        _t("brand"), _time_marcas,
+        key="{}_time_marca".format(key_prefix),
+    ) if len(_time_marcas) > 2 else "Todas"
+    _time_df = chart_df if _time_marca == "Todas" else chart_df[chart_df["marca"] == _time_marca]
+
+    time_fig = charts.line_over_time(_time_df)
     if time_fig is not None:
         st.plotly_chart(time_fig, use_container_width=True)
 
-    time_by_network_fig = charts.line_over_time_by_network(chart_df)
+    time_by_network_fig = charts.line_over_time_by_network(_time_df)
     if time_by_network_fig is not None:
         st.plotly_chart(time_by_network_fig, use_container_width=True)
 
     # ── Clasificación por tema ────────────────────────────────────────────
-    st.subheader("Análisis por tema")
+    st.subheader(_t("topic_analysis"))
     dict_options = tc.available_dictionaries()
     dict_labels = [name for _, name in dict_options]
     dict_keys = [k for k, _ in dict_options]
     selected_dict_label = st.selectbox(
-        "Diccionario de temas", dict_labels,
+        _t("topic_dict"), dict_labels,
         key="{}_dict_select".format(key_prefix),
     )
     selected_dict_key = dict_keys[dict_labels.index(selected_dict_label)]
@@ -192,17 +202,18 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     total_otros = (chart_df["tema"] == "Otros").sum()
     pct_classified = round(total_classified / len(chart_df) * 100) if len(chart_df) else 0
     mc1, mc2, mc3 = st.columns(3)
-    mc1.metric("Clasificados", "{} ({}%)".format(total_classified, pct_classified))
-    mc2.metric("Sin tema (Otros)", total_otros)
-    mc3.metric("Temas detectados", chart_df[chart_df["tema"] != "Otros"]["tema"].nunique())
+    mc1.metric(_t("classified"), "{} ({}%)".format(total_classified, pct_classified))
+    mc2.metric(_t("unclassified"), total_otros)
+    mc3.metric(_t("topics_detected"), chart_df[chart_df["tema"] != "Otros"]["tema"].nunique())
 
+    _viz_opts = [_t("viz_topics_sentiment"), _t("viz_priority"), _t("viz_topics_network")]
     tema_chart = st.radio(
-        "Visualización", ["Temas × Sentimiento", "Prioridad", "Temas × Red"],
+        _t("visualization"), _viz_opts,
         horizontal=True, key="{}_tema_chart".format(key_prefix),
     )
-    if tema_chart == "Temas × Sentimiento":
+    if tema_chart == _viz_opts[0]:
         fig = charts.bubble_matrix_tema_sentimiento(chart_df)
-    elif tema_chart == "Prioridad":
+    elif tema_chart == _viz_opts[1]:
         fig = charts.bubble_prioridad(chart_df)
     else:
         fig = charts.heatmap_tema_red(chart_df)
@@ -210,14 +221,14 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
         st.plotly_chart(fig, use_container_width=True)
 
     if total_otros > 0:
-        with st.expander("Explorar comentarios sin tema (Otros) — {} comentarios".format(total_otros)):
+        with st.expander(_t("explore_otros").format(total_otros)):
             otros_df = chart_df[chart_df["tema"] == "Otros"]
             otros_words = charts.top_words(otros_df["comentario"].dropna(), n=30)
             if otros_words:
-                st.caption("Palabras más frecuentes en comentarios sin clasificar:")
+                st.caption(_t("frequent_words_otros"))
                 word_labels = ["{} ({})".format(w, c) for w, c in otros_words]
                 sel_otros = st.pills(
-                    "Haz clic para ver ejemplos", word_labels,
+                    _t("click_word_examples"), word_labels,
                     key="{}_otros_pill".format(key_prefix),
                 )
                 if sel_otros:
@@ -232,7 +243,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
 
     networks = sorted(df["Red"].dropna().unique().tolist())
 
-    st.subheader("Nube de palabras por red")
+    st.subheader(_t("wordcloud_by_network"))
     wc_cols = st.columns(2)
     for i, red in enumerate(networks):
         img = build_wordcloud_image(active_path, mtime, red=red)
@@ -241,13 +252,13 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
             if img is not None:
                 st.image(img, use_container_width=True)
             else:
-                st.caption("No hay suficiente texto para generar la nube.")
+                st.caption(_t("not_enough_text_cloud"))
 
     cloud_words = charts.top_words(df["Comentario"].dropna(), n=50)
     if cloud_words:
         word_labels = ["{} ({})".format(w, c) for w, c in cloud_words]
         selected_pill = st.pills(
-            "Haz clic en una palabra para ver los comentarios",
+            _t("click_word_comments"),
             word_labels, key="{}_wc_pill".format(key_prefix),
         )
         if selected_pill:
@@ -272,7 +283,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
                         if c in top.columns]
                 if "Link del post" in top.columns:
                     show.append("Link del post")
-                st.caption("{} comentarios con '{}' — mostrando top 10:".format(len(matches), word))
+                st.caption(_t("comments_with_word").format(len(matches), word))
 
                 def _color_sent(val):
                     return {"Positivo": "color: #2ecc71; font-weight: bold",
@@ -287,9 +298,9 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
                     },
                 )
             else:
-                st.caption("No se encontraron comentarios con '{}'.".format(word))
+                st.caption(_t("no_comments_found_word").format(word))
 
-    st.subheader("Nube de palabras por sentimiento")
+    st.subheader(_t("wordcloud_by_sentiment"))
     network_options = ["Todas"] + networks
     selected_network = st.selectbox(
         "Red", network_options, key="wc_red_{}".format(key_prefix)
@@ -307,18 +318,14 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
             if img is not None:
                 st.image(img, use_container_width=True)
             else:
-                st.caption("No hay suficiente texto para generar la nube.")
+                st.caption(_t("not_enough_text_cloud"))
 
-    st.subheader("Árbol de palabras")
-    st.caption(
-        "Escribe una palabra o frase y descubre cómo la continúan los "
-        "comentarios. Las ramas más gruesas y los textos más grandes "
-        "indican continuaciones más frecuentes."
-    )
+    st.subheader(_t("word_tree"))
+    st.caption(_t("word_tree_caption"))
     _wt_marcas = ["Todas"] + sorted(df["Marca"].dropna().unique().tolist()) if "Marca" in df.columns else ["Todas"]
     _wt_c1, _wt_c2 = st.columns([3, 1])
     root_phrase = _wt_c1.text_input(
-        "Palabra o frase", key="wordtree_root_{}".format(key_prefix)
+        _t("word_or_phrase"), key="wordtree_root_{}".format(key_prefix)
     )
     _wt_marca = _wt_c2.selectbox("Marca", _wt_marcas, key="wt_marca_{}".format(key_prefix))
 
@@ -326,7 +333,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
         wt_df = df if _wt_marca == "Todas" else df[df["Marca"] == _wt_marca]
         wt_comments = wt_df["Comentario"].dropna()
         if wt_comments.empty:
-            st.caption("No hay comentarios para esta marca.")
+            st.caption(_t("no_comments_brand"))
         else:
             wt_tagged = charts.tag_texts_for_wordtree(wt_comments.tolist())
             wt_texts = wt_comments.tolist()
@@ -335,14 +342,14 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
             tree_data = charts.build_word_tree(wt_tagged, root_phrase,
                                                full_texts=wt_texts, likes=wt_likes, sentiments=wt_sents)
             if tree_data is None:
-                st.caption("No se encontraron comentarios con esa palabra o frase.")
+                st.caption(_t("no_comments_word"))
             else:
                 components.html(
                     charts.word_tree_html(tree_data, width=1400),
                     height=charts.word_tree_height(tree_data),
                 )
 
-    st.subheader("Comentarios más interactuados")
+    st.subheader(_t("most_interacted"))
     if df["Likes"].notna().any():
         filter_cols = st.columns(2)
         marcas_disp = sorted(df["Marca"].dropna().unique().tolist()) if "Marca" in df.columns else []
@@ -378,13 +385,10 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
             },
         )
     else:
-        st.caption("No hay datos de likes disponibles.")
+        st.caption(_t("no_likes_data"))
 
-    st.subheader("Principales detractores y brand lovers")
-    st.caption(
-        "Usuarios que más veces comentaron con sentimiento negativo "
-        "(detractores) o positivo (brand lovers)."
-    )
+    st.subheader(_t("detractors_lovers"))
+    st.caption(_t("detractors_caption"))
     with_author = df.dropna(subset=["Autor"]) if "Autor" in df.columns else df.iloc[0:0]
     if not with_author.empty and "Marca" in with_author.columns:
         if brand_mapping:
@@ -404,34 +408,36 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     det_col, lover_col = st.columns(2)
 
     with det_col:
-        st.markdown("**Principales detractores**")
+        st.markdown("**{}**".format(_t("main_detractors")))
         negativos = with_author[with_author["Sentimiento"] == "Negativo"]
         if not negativos.empty:
+            _neg_col = _t("negative_comments_col")
             top_neg = (
                 negativos.groupby("Autor").size()
-                .reset_index(name="Comentarios negativos")
-                .sort_values("Comentarios negativos", ascending=False)
+                .reset_index(name=_neg_col)
+                .sort_values(_neg_col, ascending=False)
                 .head(10)
             )
             st.dataframe(top_neg, hide_index=True, use_container_width=True)
         else:
-            st.caption("No hay comentarios negativos con autor identificado.")
+            st.caption(_t("no_negative_comments"))
 
     with lover_col:
-        st.markdown("**Principales brand lovers**")
+        st.markdown("**{}**".format(_t("main_lovers")))
         positivos = with_author[with_author["Sentimiento"] == "Positivo"]
         if not positivos.empty:
+            _pos_col = _t("positive_comments_col")
             top_pos = (
                 positivos.groupby("Autor").size()
-                .reset_index(name="Comentarios positivos")
-                .sort_values("Comentarios positivos", ascending=False)
+                .reset_index(name=_pos_col)
+                .sort_values(_pos_col, ascending=False)
                 .head(10)
             )
             st.dataframe(top_pos, hide_index=True, use_container_width=True)
         else:
-            st.caption("No hay comentarios positivos con autor identificado.")
+            st.caption(_t("no_positive_comments"))
 
-    st.subheader("Posts con más comentarios por mes")
+    st.subheader(_t("posts_by_month"))
     with_post_date = df.copy()
     with_post_date["Mes"] = pd.to_datetime(with_post_date["Fecha de publicación"], errors="coerce").dt.to_period("M").astype(str)
     with_post_date = with_post_date[with_post_date["Mes"] != "NaT"]
@@ -445,20 +451,16 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
         )
         st.dataframe(top_posts, hide_index=True, use_container_width=True)
     else:
-        st.caption("No hay fechas de publicación disponibles.")
+        st.caption(_t("no_pub_dates"))
 
     if show_brand_comparison and "Marca" in df.columns:
         marcas = sorted(df["Marca"].dropna().unique().tolist())
         if len(marcas) > 1:
-            st.subheader("Comparación por marca")
+            st.subheader(_t("brand_comparison"))
 
             st.plotly_chart(charts.bar_by_brand(chart_df), use_container_width=True)
 
-            time_by_brand_fig = charts.line_over_time_by_brand(chart_df)
-            if time_by_brand_fig is not None:
-                st.plotly_chart(time_by_brand_fig, use_container_width=True)
-
-            st.markdown("**Nube de palabras por marca**")
+            st.markdown("**{}**".format(_t("wordcloud_by_brand")))
             sel_marca_wc = st.selectbox(
                 "Marca", marcas, key="{}_wc_marca_select".format(key_prefix),
             )
@@ -467,7 +469,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
             if img is not None:
                 st.image(img, use_container_width=True)
             else:
-                st.caption("No hay suficiente texto para generar la nube.")
+                st.caption(_t("not_enough_text_cloud"))
 
 
 os.makedirs(INPUT_DIR, exist_ok=True)
@@ -658,12 +660,12 @@ with tab_export:
         st.session_state["uploader_key"] = 0
 
     uploaded = st.file_uploader(
-        "Hoja de cálculo de posts (.xlsx, .csv)", type=["xlsx", "csv"],
+        _t("upload_posts"), type=["xlsx", "csv"],
         key="uploader_{}".format(st.session_state["uploader_key"]),
     )
 
     if uploaded is not None:
-        if st.button("Limpiar selección"):
+        if st.button(_t("clear_selection")):
             st.session_state["uploader_key"] += 1
             st.rerun()
 
@@ -675,34 +677,34 @@ with tab_export:
             raw_df = sr.read_raw_file(save_path)
             columns = raw_df.columns.tolist()
         except Exception as e:
-            st.error("Error al leer el archivo: {}".format(e))
+            st.error(_t("error_reading_file").format(e))
             raw_df = None
             columns = []
 
         if raw_df is not None and columns:
-            st.caption("Mapea las columnas de tu archivo:")
-            none_opt = "(no disponible)"
+            st.caption(_t("map_columns"))
+            none_opt = _t("col_not_available")
             opt_cols = [none_opt] + columns
 
             mc1, mc2 = st.columns(2)
             auto_link = _auto_col("link", columns)
             col_link = mc1.selectbox(
-                "Link del post (requerido)", columns,
+                _t("col_link"), columns,
                 index=columns.index(auto_link) if auto_link else 0,
                 key="map_link",
             )
             col_net = mc2.selectbox(
-                "Red social", opt_cols,
+                _t("col_network"), opt_cols,
                 index=opt_cols.index(_auto_col("network", columns) or none_opt),
                 key="map_network",
             )
             col_profile = mc1.selectbox(
-                "Perfil / Marca", opt_cols,
+                _t("col_profile"), opt_cols,
                 index=opt_cols.index(_auto_col("profile", columns) or none_opt),
                 key="map_profile",
             )
             col_date = mc2.selectbox(
-                "Fecha de publicación", opt_cols,
+                _t("col_date"), opt_cols,
                 index=opt_cols.index(_auto_col("date", columns) or none_opt),
                 key="map_date",
             )
@@ -718,18 +720,18 @@ with tab_export:
             try:
                 links_df = sr.read_with_mapping(save_path, mapping)
             except Exception as e:
-                st.error("Error al procesar: {}".format(e))
+                st.error(_t("error_processing").format(e))
                 links_df = None
 
             if links_df is not None:
-                st.success("{} links encontrados".format(len(links_df)))
+                st.success(_t("links_found").format(len(links_df)))
                 if "network" in links_df.columns:
                     counts = (links_df["network"].value_counts()
-                              .rename_axis("Red").reset_index(name="Cantidad"))
+                              .rename_axis("Red").reset_index(name=_t("network_count_column")))
                     st.dataframe(counts, hide_index=True, use_container_width=True)
                 st.dataframe(links_df.head(20), use_container_width=True)
 
-                if st.button("Iniciar exportación", type="primary"):
+                if st.button(_t("start_export"), type="primary"):
                     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
                     run_dir = os.path.join(RUNS_DIR, run_id)
                     orc.init_run(run_dir, links_df, source_file=save_path,
@@ -742,29 +744,25 @@ with tab_export:
 with tab_runs:
     runs = list_runs()
     if not runs:
-        st.info("Aún no hay ejecuciones.")
+        st.info(_t("no_runs"))
     else:
         active_run = st.session_state.get("active_run")
         default_index = runs.index(active_run) if active_run in runs else 0
-        selected_run = st.selectbox("Ejecución", runs, index=default_index)
+        selected_run = st.selectbox(_t("execution"), runs, index=default_index)
         run_dir = os.path.join(RUNS_DIR, selected_run)
 
-        with st.expander("Eliminar esta ejecución"):
-            st.warning(
-                "Esto borrará permanentemente todos los archivos de la ejecución "
-                "'{}' (exportaciones, estado y análisis). Esta acción no se "
-                "puede deshacer.".format(selected_run)
-            )
+        with st.expander(_t("delete_execution")):
+            st.warning(_t("delete_warning").format(selected_run))
             run_active = is_running(run_dir) or ra.is_analysis_running(run_dir)
             if run_active:
-                st.caption("No se puede eliminar mientras la exportación o el análisis están en ejecución.")
+                st.caption(_t("cannot_delete_running"))
             confirm_delete = st.checkbox(
-                "Sí, quiero eliminar esta ejecución",
+                _t("delete_confirm"),
                 key="confirm_delete_{}".format(selected_run),
                 disabled=run_active,
             )
             with st.container(key="delete_run_button"):
-                if st.button("Eliminar ejecución", disabled=not confirm_delete or run_active, type="primary"):
+                if st.button(_t("delete_button"), disabled=not confirm_delete or run_active, type="primary"):
                     shutil.rmtree(run_dir)
                     st.session_state.pop("active_run", None)
                     st.rerun()
@@ -783,9 +781,9 @@ with tab_runs:
             running = is_running(run_dir)
 
             col1, col2, col3 = st.columns(3)
-            col1.metric("Total de links", total)
-            col2.metric("Completados", finished)
-            col3.metric("Proceso", "En ejecución" if running else "Detenido")
+            col1.metric(_t("total_links"), total)
+            col2.metric(_t("completed"), finished)
+            col3.metric(_t("process"), _t("running") if running else _t("stopped"))
 
             st.progress(finished / total if total else 0)
 
@@ -800,21 +798,21 @@ with tab_runs:
                 avg = sum(durations) / len(durations)
                 eta = avg * pending
                 st.caption(
-                    "Tiempo promedio por link: {} · Tiempo restante estimado: {} ({} pendientes)".format(
+                    _t("avg_time_eta").format(
                         format_duration(avg), format_duration(eta), pending
                     )
                 )
 
             display_counts = pd.Series([display_status(item) for item in items]).value_counts()
-            status_table = display_counts.rename_axis("Estado").reset_index(name="Cantidad")
+            status_table = display_counts.rename_axis(_t("col_label_status")).reset_index(name=_t("network_count_column"))
             st.dataframe(status_table, hide_index=True, use_container_width=True)
 
             if running:
-                if st.button("Detener", key="stop_{}".format(run_name)):
+                if st.button(_t("stop"), key="stop_{}".format(run_name)):
                     open(orc.stop_flag_path(run_dir), "w").close()
                     st.rerun()
             elif finished < total:
-                if st.button("Continuar", key="resume_{}".format(run_name)):
+                if st.button(_t("continue"), key="resume_{}".format(run_name)):
                     stop_path = orc.stop_flag_path(run_dir)
                     if os.path.exists(stop_path):
                         os.remove(stop_path)
@@ -823,9 +821,9 @@ with tab_runs:
 
             failed_jobs = [item for item in items if item["status"] == "error" and item.get("guid") is None]
             if failed_jobs:
-                st.caption("{} link(s) no pudieron crear el job de exportación.".format(len(failed_jobs)))
+                st.caption(_t("failed_jobs_caption").format(len(failed_jobs)))
                 if st.button(
-                    "🔁 Reintentar links con error al crear job",
+                    _t("retry_failed_jobs"),
                     key="retry_failed_{}".format(run_name),
                     disabled=running,
                 ):
@@ -842,16 +840,17 @@ with tab_runs:
                     launch_run(run_dir)
                     st.rerun()
 
-            with st.expander("Detalles por link"):
+            with st.expander(_t("details_per_link")):
                 df = pd.DataFrame(items)
-                cols = [c for c in COLUMN_LABELS if c in df.columns]
-                df = df[cols].rename(columns=COLUMN_LABELS)
-                df["Estado"] = [display_status(item) for item in items]
+                _col_labels = _column_labels()
+                cols = [c for c in _col_labels if c in df.columns]
+                df = df[cols].rename(columns=_col_labels)
+                df[_t("col_label_status")] = [display_status(item) for item in items]
 
-                comentarios_col = COLUMN_LABELS["total"]
-                recolectados_col = COLUMN_LABELS["total_exported"]
+                comentarios_col = _col_labels["total"]
+                recolectados_col = _col_labels["total_exported"]
                 totals_row = {c: "" for c in df.columns}
-                totals_row[COLUMN_LABELS["link"]] = "Total"
+                totals_row[_col_labels["link"]] = "Total"
                 if comentarios_col in df.columns:
                     totals_row[comentarios_col] = pd.to_numeric(df[comentarios_col], errors="coerce").sum()
                 if recolectados_col in df.columns:
@@ -871,11 +870,8 @@ with tab_runs:
         if _profiles:
             _saved = _state.get("brand_mapping", {})
             _expanded = not _saved
-            with st.expander("Definir nombres de marca", expanded=_expanded):
-                st.caption(
-                    "Cada perfil de red social se asignará a la marca que definas aquí. "
-                    "Guarda antes de generar el análisis."
-                )
+            with st.expander(_t("define_brands"), expanded=_expanded):
+                st.caption(_t("define_brands_caption"))
                 with st.form("brand_mapping_{}".format(selected_run)):
                     cols = st.columns(2)
                     _mapping = {}
@@ -885,13 +881,13 @@ with tab_runs:
                             profile, value=default,
                             key="bm_{}_{}".format(selected_run, profile),
                         )
-                    if st.form_submit_button("Guardar marcas", type="primary"):
+                    if st.form_submit_button(_t("save_brands"), type="primary"):
                         _state["brand_mapping"] = {
                             p: v.strip() or cons.normalize_brand(p)
                             for p, v in _mapping.items()
                         }
                         orc.save_state(run_dir, _state)
-                        st.success("Marcas guardadas.")
+                        st.success(_t("brands_saved"))
 
         _dl_refresh = "3s" if is_running(run_dir) else None
 
@@ -906,18 +902,18 @@ with tab_runs:
             zip_bytes = make_zip_bytes_cached(run_dir, done_count)
             dl_col, analyze_col = st.columns(2)
             dl_col.download_button(
-                "Descargar resultados (ZIP)",
+                _t("download_zip"),
                 data=zip_bytes,
                 file_name="export_{}.zip".format(run_name),
                 mime="application/zip",
             )
             with analyze_col:
-                if st.button("Analizar ahora →", key="go_analyze_{}".format(run_name),
+                if st.button(_t("analyze_now"), key="go_analyze_{}".format(run_name),
                              type="primary"):
                     st.session_state["analyze_run"] = run_name
 
             if st.session_state.get("analyze_run") == run_name:
-                st.info("Ve a la pestaña **Análisis** para ver el dashboard.")
+                st.info(_t("go_to_analysis"))
 
         render_run_downloads(run_dir, selected_run)
 
@@ -934,21 +930,22 @@ def _runs_with_exports():
 
 
 with tab_analysis:
+    _src_opts = [_t("exported_run"), _t("upload_own_base")]
     source = st.radio(
-        "Fuente de datos",
-        ["Ejecución exportada", "Subir base propia"],
+        _t("data_source"),
+        _src_opts,
         horizontal=True,
         key="analysis_source",
     )
 
-    if source == "Ejecución exportada":
+    if source == _src_opts[0]:
         run_options = _runs_with_exports()
         if not run_options:
-            st.info("No hay ejecuciones con datos exportados.")
+            st.info(_t("no_runs_with_data"))
         else:
             default_run = st.session_state.get("analyze_run")
             default_idx = run_options.index(default_run) if default_run in run_options else 0
-            selected = st.selectbox("Ejecución", run_options, index=default_idx,
+            selected = st.selectbox(_t("execution"), run_options, index=default_idx,
                                     key="analysis_run_select")
             run_dir = os.path.join(RUNS_DIR, selected)
 
@@ -959,7 +956,7 @@ with tab_analysis:
                 state = orc.load_state(run_dir)
                 done_count = sum(1 for item in state["items"] if item["status"] == "done")
 
-                st.caption("{} post(s) con comentarios exportados.".format(done_count))
+                st.caption(_t("posts_exported").format(done_count))
 
                 running = ra.is_analysis_running(run_dir)
                 analysis_state = ra.load_analysis_state(run_dir)
@@ -971,23 +968,18 @@ with tab_analysis:
                         processed = analysis_state.get("processed", 0)
                         total = analysis_state["total"]
                         st.progress(processed / total if total else 0)
-                        st.caption("{}/{} comentarios".format(processed, total))
+                        st.caption(_t("comments_counter").format(processed, total))
                     else:
                         st.progress(0)
                 else:
-                    label = "Generar análisis"
+                    label = _t("generate_analysis")
                     if analysis_state and analysis_state.get("stage") == "completado":
-                        label = "Regenerar análisis"
+                        label = _t("regenerate_analysis")
 
                     use_ai = st.checkbox(
-                        "Usar análisis con IA (Claude Haiku)",
+                        _t("use_ai"),
                         key="use_ai_analysis_{}".format(run_name),
-                        help=(
-                            "Analiza cada comentario con Claude (Anthropic) en lugar del "
-                            "modelo local. Suele entender mejor el sarcasmo, la jerga y "
-                            "el contexto, pero tiene un costo por uso de la API y requiere "
-                            "ANTHROPIC_API_KEY configurada."
-                        ),
+                        help=_t("use_ai_help"),
                     )
 
                     if st.button(label, key="analyze_btn_{}".format(run_name), type="primary"):
@@ -995,36 +987,33 @@ with tab_analysis:
                         st.rerun()
 
                     if analysis_state and analysis_state.get("stage") == "error":
-                        st.error("Error al generar el análisis: {}".format(
+                        st.error(_t("analysis_error").format(
                             analysis_state.get("error")))
 
                 if analysis_state and analysis_state.get("stage") == "completado":
-                    engine_label = ("IA (Claude Haiku)" if analysis_state.get("engine") == "ai"
-                                    else "modelo local (pysentimiento)")
-                    st.caption("Análisis generado con: {}".format(engine_label))
+                    engine_label = (_t("engine_ai") if analysis_state.get("engine") == "ai"
+                                    else _t("engine_local"))
+                    st.caption(_t("analysis_generated_with").format(engine_label))
 
                     report_path = os.path.join(run_dir, analysis_state["report_file"])
                     corrected_path = os.path.join(run_dir, CORRECTED_FILENAME)
 
-                    with st.expander("Base corregida manualmente"):
+                    with st.expander(_t("corrected_base")):
                         if os.path.exists(corrected_path):
-                            st.success("Usando la base corregida que subiste manualmente.")
-                            if st.button("Quitar base corregida",
+                            st.success(_t("using_corrected"))
+                            if st.button(_t("remove_corrected"),
                                          key="remove_corrected_a_{}".format(run_name)):
                                 os.remove(corrected_path)
                                 st.rerun()
                         else:
-                            st.caption(
-                                "Descarga el XLSX de abajo, corrige a mano la columna "
-                                "'Sentimiento' y vuelve a subirlo aquí."
-                            )
+                            st.caption(_t("upload_corrected_caption"))
 
                         uploader_key_name = "corrected_upload_key_a_{}".format(run_name)
                         if uploader_key_name not in st.session_state:
                             st.session_state[uploader_key_name] = 0
 
                         uploaded_corrected = st.file_uploader(
-                            "Subir XLSX corregido", type=["xlsx"],
+                            _t("upload_corrected_xlsx"), type=["xlsx"],
                             key="corrected_a_{}_{}".format(
                                 run_name, st.session_state[uploader_key_name]),
                         )
@@ -1033,16 +1022,13 @@ with tab_analysis:
                                 test_df = pd.read_excel(
                                     uploaded_corrected, sheet_name="Comentarios")
                             except Exception as e:
-                                st.error("Error al leer el archivo: {}".format(e))
+                                st.error(_t("error_reading_file").format(e))
                                 test_df = None
 
                             if test_df is not None:
                                 required = {"Red", "Sentimiento", "Comentario"}
                                 if not required.issubset(test_df.columns):
-                                    st.error(
-                                        "El archivo debe tener una hoja 'Comentarios' con "
-                                        "al menos las columnas: Red, Sentimiento, Comentario."
-                                    )
+                                    st.error(_t("error_corrected_columns"))
                                 else:
                                     with open(corrected_path, "wb") as f:
                                         f.write(uploaded_corrected.getbuffer())
@@ -1064,7 +1050,7 @@ with tab_analysis:
                         with open(active_path, "rb") as f:
                             report_bytes = f.read()
                         st.download_button(
-                            "Descargar análisis (XLSX)",
+                            _t("download_analysis"),
                             data=report_bytes,
                             file_name="analisis_{}.xlsx".format(run_name),
                             mime="application/vnd.openxmlformats-officedocument"
@@ -1074,10 +1060,7 @@ with tab_analysis:
             render_analysis(run_dir, selected)
 
     else:
-        st.caption(
-            "Sube cualquier archivo XLSX o CSV con comentarios. "
-            "Mapea las columnas de tu archivo a los campos del análisis."
-        )
+        st.caption(_t("upload_any_file"))
 
         _ANALYSIS_DETECT = {
             "Comentario": {"comentario", "comment", "texto", "text", "message"},
@@ -1102,7 +1085,7 @@ with tab_analysis:
         base_path = os.path.join(UPLOADS_DIR, UPLOADED_BASE_FILENAME)
 
         uploaded_base = st.file_uploader(
-            "Archivo XLSX o CSV", type=["xlsx", "csv"],
+            _t("upload_xlsx_csv"), type=["xlsx", "csv"],
             key="upload_base_{}".format(st.session_state["upload_base_uploader_key"]),
         )
 
@@ -1119,54 +1102,54 @@ with tab_analysis:
                 raw_up.columns = [str(c).strip() for c in raw_up.columns]
                 up_cols = raw_up.columns.tolist()
             except Exception as e:
-                st.error("Error al leer el archivo: {}".format(e))
+                st.error(_t("error_reading_file").format(e))
                 raw_up = None
                 up_cols = []
 
             if raw_up is not None and up_cols:
-                st.caption("Mapea las columnas de tu archivo:")
-                _na = "(no disponible)"
+                st.caption(_t("map_columns"))
+                _na = _t("col_not_available")
                 _opt = [_na] + up_cols
 
                 _ac1, _ac2 = st.columns(2)
                 _det = _detect_analysis_col
                 m_comment = _ac1.selectbox(
-                    "Comentario (requerido)", up_cols,
+                    _t("col_comment_required"), up_cols,
                     index=up_cols.index(_det("Comentario", up_cols)) if _det("Comentario", up_cols) else 0,
                     key="umap_comment",
                 )
                 m_red = _ac2.selectbox(
-                    "Red / Plataforma (requerido)", up_cols,
+                    _t("col_network_required"), up_cols,
                     index=up_cols.index(_det("Red", up_cols)) if _det("Red", up_cols) else 0,
                     key="umap_red",
                 )
                 m_sent = _ac1.selectbox(
-                    "Sentimiento", _opt,
+                    _t("col_sentiment"), _opt,
                     index=_opt.index(_det("Sentimiento", up_cols) or _na),
                     key="umap_sent",
                 )
                 m_marca = _ac2.selectbox(
-                    "Marca", _opt,
+                    _t("col_brand"), _opt,
                     index=_opt.index(_det("Marca", up_cols) or _na),
                     key="umap_marca",
                 )
                 m_autor = _ac1.selectbox(
-                    "Autor", _opt,
+                    _t("col_author"), _opt,
                     index=_opt.index(_det("Autor", up_cols) or _na),
                     key="umap_autor",
                 )
                 m_likes = _ac2.selectbox(
-                    "Likes", _opt,
+                    _t("col_likes"), _opt,
                     index=_opt.index(_det("Likes", up_cols) or _na),
                     key="umap_likes",
                 )
                 m_fecha = _ac1.selectbox(
-                    "Fecha del comentario", _opt,
+                    _t("col_comment_date"), _opt,
                     index=_opt.index(_det("Fecha del comentario", up_cols) or _na),
                     key="umap_fecha",
                 )
                 m_link = _ac2.selectbox(
-                    "Link del post", _opt,
+                    _t("col_post_link"), _opt,
                     index=_opt.index(_det("Link del post", up_cols) or _na),
                     key="umap_link",
                 )
@@ -1185,20 +1168,20 @@ with tab_analysis:
                 rename_up = {v: k for k, v in col_map.items() if v != k}
                 mapped_up = raw_up.rename(columns=rename_up)
 
-                st.caption("{} filas · {} columnas mapeadas".format(
+                st.caption(_t("rows_columns_mapped").format(
                     len(mapped_up), len(col_map)))
                 preview_cols = [c for c in ["Red", "Marca", "Autor", "Comentario",
                                             "Likes", "Sentimiento"] if c in mapped_up.columns]
                 st.dataframe(mapped_up[preview_cols].head(10), hide_index=True,
                              use_container_width=True)
 
-                if st.button("Cargar base", type="primary", key="load_base"):
+                if st.button(_t("load_base"), type="primary", key="load_base"):
                     mapped_up.to_excel(base_path, sheet_name="Comentarios", index=False)
                     st.session_state["upload_base_uploader_key"] += 1
                     st.rerun()
 
         if os.path.exists(base_path):
-            if st.button("Quitar base subida"):
+            if st.button(_t("remove_uploaded_base")):
                 os.remove(base_path)
                 st.rerun()
 
@@ -1207,7 +1190,7 @@ with tab_analysis:
                 base_path, mtime, key_prefix="upload_base",
                 show_brand_comparison=True)
         else:
-            st.info("Sube un archivo para ver el análisis.")
+            st.info(_t("upload_file_prompt"))
 
 
 _IPDS_COL_DETECT = {
@@ -1233,21 +1216,21 @@ _SENT_OPTIONS_DISPLAY = ["🟢 Positivo", "🟡 Neutral", "🔴 Negativo"]
 
 def _resolve_clasif_path():
     """Retorna (path, brand_mapping) do arquivo ativo para edição."""
+    _clasif_src_opts = [_t("clasif_source_run"), _t("clasif_source_upload")]
     source = st.radio(
-        "Fuente de datos", ["Ejecución exportada", "Base subida"],
+        _t("data_source"), _clasif_src_opts,
         horizontal=True, key="clasif_source",
     )
-    if source == "Ejecución exportada":
+    if source == _clasif_src_opts[0]:
         run_opts = _runs_with_exports()
         if not run_opts:
-            st.info("No hay ejecuciones con análisis.")
+            st.info(_t("no_runs_with_analysis"))
             return None, {}
-        sel = st.selectbox("Ejecución", run_opts, key="clasif_run")
+        sel = st.selectbox(_t("execution"), run_opts, key="clasif_run")
         run_dir = os.path.join(RUNS_DIR, sel)
         analysis_state = ra.load_analysis_state(run_dir)
         if not analysis_state or analysis_state.get("stage") != "completado":
-            st.info("Esta ejecución no tiene análisis completado. "
-                    "Genera el análisis en la pestaña Análisis primero.")
+            st.info(_t("no_analysis_completed"))
             return None, {}
         report_path = os.path.join(run_dir, analysis_state["report_file"])
         corrected = os.path.join(run_dir, CORRECTED_FILENAME)
@@ -1257,14 +1240,13 @@ def _resolve_clasif_path():
     else:
         base_path = os.path.join(UPLOADS_DIR, UPLOADED_BASE_FILENAME)
         if not os.path.exists(base_path):
-            st.info("No hay base subida. Sube una en la pestaña Análisis.")
+            st.info(_t("no_uploaded_base"))
             return None, {}
         return base_path, {}
 
 
 with tab_clasif:
-    st.caption("Revisa y corrige la clasificación de sentimiento y tema de cada "
-               "comentario. Los cambios se guardan en el archivo XLSX que descargas.")
+    st.caption(_t("clasif_caption"))
 
     clasif_path, clasif_brand_map = _resolve_clasif_path()
     if clasif_path is not None:
@@ -1295,33 +1277,33 @@ with tab_clasif:
 
         # ── Filtros ──
         fc1, fc2, fc3 = st.columns(3)
-        c_search = fc1.text_input("Buscar", key="clasif_search",
-                                   placeholder="Texto...")
-        c_redes = ["Todas"] + sorted(clasif_df["Red"].dropna().unique().tolist()) if "Red" in clasif_df.columns else ["Todas"]
+        c_search = fc1.text_input(_t("clasif_search"), key="clasif_search",
+                                   placeholder=_t("search_placeholder"))
+        c_redes = [_t("clasif_all")] + sorted(clasif_df["Red"].dropna().unique().tolist()) if "Red" in clasif_df.columns else [_t("clasif_all")]
         c_red = fc2.selectbox("Red", c_redes, key="clasif_red_f")
-        c_sent = fc3.selectbox("Sentimiento", ["Todos"] + _SENT_OPTIONS_DISPLAY,
+        c_sent = fc3.selectbox(_t("col_sentiment"), [_t("clasif_all_m")] + _SENT_OPTIONS_DISPLAY,
                                key="clasif_sent_f")
         fc5, fc6, fc7 = st.columns(3)
-        c_marcas = ["Todas"] + sorted(clasif_df["Marca"].dropna().unique().tolist()) if "Marca" in clasif_df.columns else ["Todas"]
+        c_marcas = [_t("clasif_all")] + sorted(clasif_df["Marca"].dropna().unique().tolist()) if "Marca" in clasif_df.columns else [_t("clasif_all")]
         c_marca = fc5.selectbox("Marca", c_marcas, key="clasif_marca_f")
-        c_tema = fc6.selectbox("Tema", ["Todos"] + topic_list, key="clasif_tema_f")
-        c_links = ["Todos"] + sorted(clasif_df["Link del post"].dropna().unique().tolist()) if "Link del post" in clasif_df.columns else ["Todos"]
-        c_link = fc7.selectbox("Link del post", c_links, key="clasif_link_f")
+        c_tema = fc6.selectbox("Tema", [_t("clasif_all_m")] + topic_list, key="clasif_tema_f")
+        c_links = [_t("clasif_all_m")] + sorted(clasif_df["Link del post"].dropna().unique().tolist()) if "Link del post" in clasif_df.columns else [_t("clasif_all_m")]
+        c_link = fc7.selectbox(_t("col_post_link"), c_links, key="clasif_link_f")
 
         filtered = clasif_df.copy()
         if c_search.strip():
             filtered = filtered[filtered["Comentario"].str.lower().str.contains(
                 c_search.strip().lower(), na=False)]
-        if c_red != "Todas" and "Red" in filtered.columns:
+        if c_red != _t("clasif_all") and "Red" in filtered.columns:
             filtered = filtered[filtered["Red"] == c_red]
-        if c_sent != "Todos":
+        if c_sent != _t("clasif_all_m"):
             real_sent = _SENT_FROM_DISPLAY.get(c_sent, c_sent)
             filtered = filtered[filtered["Sentimiento"] == real_sent]
-        if c_marca != "Todas" and "Marca" in filtered.columns:
+        if c_marca != _t("clasif_all") and "Marca" in filtered.columns:
             filtered = filtered[filtered["Marca"] == c_marca]
-        if c_tema != "Todos":
+        if c_tema != _t("clasif_all_m"):
             filtered = filtered[filtered["Tema"] == c_tema]
-        if c_link != "Todos" and "Link del post" in filtered.columns:
+        if c_link != _t("clasif_all_m") and "Link del post" in filtered.columns:
             filtered = filtered[filtered["Link del post"] == c_link]
 
         # ── Paginação (acima da tabela) ──
@@ -1348,8 +1330,8 @@ with tab_clasif:
         page_num = st.session_state["clasif_page_num"]
         _pg_info.markdown(
             "<div style='text-align:center;padding-top:8px'>"
-            "Página <b>{}</b> de <b>{}</b> · {} comentarios</div>".format(
-                page_num, total_pages, len(filtered)),
+            "{}</div>".format(_t("page_of_html").format(
+                page_num, total_pages, len(filtered))),
             unsafe_allow_html=True,
         )
 
@@ -1383,17 +1365,17 @@ with tab_clasif:
                 hide_index=True,
                 use_container_width=True,
             )
-            if st.form_submit_button("Guardar cambios", type="primary"):
+            if st.form_submit_button(_t("save_changes"), type="primary"):
                 edited_sent = edited["_sent_display"].map(_SENT_FROM_DISPLAY)
                 clasif_df.loc[edited.index, "Sentimiento"] = edited_sent.values
                 clasif_df.loc[edited.index, "Tema"] = edited["Tema"].values
                 save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
                 clasif_df[save_cols].to_excel(
                     clasif_path, sheet_name="Comentarios", index=False)
-                st.success("Cambios guardados.")
+                st.success(_t("changes_saved"))
                 st.rerun()
 
-        _ps_sel = st.pills("Comentarios por página", [25, 50, 100],
+        _ps_sel = st.pills(_t("comments_per_page"), [25, 50, 100],
                            default=st.session_state.get("clasif_ps", 50),
                            key="clasif_ps_pills")
         if _ps_sel and _ps_sel != st.session_state.get("clasif_ps"):
@@ -1402,7 +1384,7 @@ with tab_clasif:
             st.rerun()
 
         st.download_button(
-            "Descargar base corregida (XLSX)",
+            _t("download_corrected"),
             data=open(clasif_path, "rb").read(),
             file_name="base_clasificada.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -1410,88 +1392,17 @@ with tab_clasif:
 
 
 with tab_ipds:
-    st.caption(
-        "Indicador de Presencia Digital Social — compara marcas "
-        "en una escala de 0 a 1 usando metodología IDH."
-    )
+    st.caption(_t("ipds_caption"))
 
-    with st.expander("Metodología del IPD-S"):
-        st.markdown("""
-**¿Qué es el IPD-S?**
-
-El Indicador de Presencia Digital Social (IPD-S) es un índice compuesto
-que evalúa la eficacia de la comunicación digital de marcas en redes
-sociales. Inspirado en la metodología del IDH (Índice de Desarrollo
-Humano) del PNUD, combina múltiples dimensiones en un único número
-de 0 a 1.
-
-**Dimensiones**
-
-| Dimensión | Qué mide | Cómo se calcula |
-|---|---|---|
-| **Actividad** | Frecuencia de publicación | Posts/mes, normalizado por red |
-| **Engagement** | Resonancia del contenido | Interacciones/post, normalizado por red |
-| **Multicanal** | Diversificación de plataformas | Nº de redes activas / total de redes |
-| **Sentimiento** | Salud de la percepción de marca | % de comentarios positivos *(opcional)* |
-
-**Normalización por plataforma**
-
-Cada red social tiene un comportamiento distinto — el volumen de
-interacciones en TikTok no es comparable al de Facebook. Por eso, las
-dimensiones de Actividad y Engagement se calculan **dentro de cada red**
-primero (comparando marcas entre sí en esa plataforma) y luego se
-agregan como promedio de los scores por red.
-
-Se usa escala logarítmica (`log(1 + x)`) antes de la normalización
-min-max para suavizar distorsiones causadas por outliers, siguiendo
-la práctica del IDH para la dimensión de ingreso.
-
-**Fórmula**
-
-`IPD-S = (D₁ × D₂ × D₃ × … × Dₙ) ^ (1/n)` — media geométrica
-
-La media geométrica (en vez de aritmética) penaliza desequilibrios:
-una marca con engagement altísimo pero actividad cero no puede
-compensar una dimensión con la otra.
-
-**Escala y niveles**
-
-| Nivel | Intervalo | Interpretación |
-|---|---|---|
-| Muy bajo | 0,00 – 0,20 | Presencia digital frágil o incipiente |
-| Bajo | 0,20 – 0,40 | Presencia por debajo del promedio del grupo |
-| Medio | 0,40 – 0,60 | Presencia promedio, con espacio para evolucionar |
-| Alto | 0,60 – 0,80 | Presencia sólida y consistente |
-| Muy alto | 0,80 – 1,00 | Referencia digital en el grupo analizado |
-
-**¿Cómo leer el termómetro?**
-
-- Las marcas posicionadas **más a la izquierda** (zona roja/naranja)
-  tienen una presencia digital débil en el grupo: publican poco,
-  generan bajo engagement, o están presentes en pocas redes. Requieren
-  atención y estrategia para mejorar su posicionamiento.
-- Las marcas posicionadas **más a la derecha** (zona verde) dominan
-  la conversación digital: publican con frecuencia, generan alto
-  engagement relativo a su plataforma, están diversificadas en
-  múltiples redes y (si hay datos) tienen un sentimiento positivo.
-  Son la referencia del grupo.
-
-**Limitaciones**
-
-- El IPD-S es relativo al grupo de marcas analizado, no absoluto.
-  Agregar o quitar una marca puede alterar los scores de las demás.
-- No considera dark posts, pauta aislada, Google, prensa, Wikipedia
-  u otras capas del digital fuera de las redes sociales.
-- La dimensión de Sentimiento depende de la disponibilidad de análisis
-  de comentarios (puede omitirse si no hay datos).
-""")
+    with st.expander(_t("ipds_methodology")):
+        st.markdown(_t("ipds_methodology_text"))
 
 
     if "ipds_uploader_key" not in st.session_state:
         st.session_state["ipds_uploader_key"] = 0
 
     ipds_file = st.file_uploader(
-        "Base de posts (.xlsx, .csv)", type=["xlsx", "csv"],
+        _t("ipds_upload"), type=["xlsx", "csv"],
         key="ipds_upload_{}".format(st.session_state["ipds_uploader_key"]),
     )
 
@@ -1510,33 +1421,33 @@ compensar una dimensión con la otra.
             ipds_raw.columns = [str(c).strip() for c in ipds_raw.columns]
             ip_cols = ipds_raw.columns.tolist()
         except Exception as e:
-            st.error("Error al leer el archivo: {}".format(e))
+            st.error(_t("error_reading_file").format(e))
             ipds_raw = None
             ip_cols = []
 
         if ipds_raw is not None and ip_cols:
-            st.caption("Mapea las columnas de tu archivo:")
-            _ina = "(no disponible)"
+            st.caption(_t("ipds_map_columns"))
+            _ina = _t("col_not_available")
             _iopt = [_ina] + ip_cols
 
             ic1, ic2 = st.columns(2)
             ip_marca = ic1.selectbox(
-                "Perfil / Marca (requerido)", ip_cols,
+                _t("ipds_col_profile_required"), ip_cols,
                 index=ip_cols.index(_ipds_detect("marca", ip_cols)) if _ipds_detect("marca", ip_cols) else 0,
                 key="ipds_marca",
             )
             ip_red = ic2.selectbox(
-                "Red social (requerido)", ip_cols,
+                _t("ipds_col_network_required"), ip_cols,
                 index=ip_cols.index(_ipds_detect("red", ip_cols)) if _ipds_detect("red", ip_cols) else 0,
                 key="ipds_red",
             )
             ip_inter = ic1.selectbox(
-                "Interacciones (requerido)", ip_cols,
+                _t("ipds_col_interactions_required"), ip_cols,
                 index=ip_cols.index(_ipds_detect("interacciones", ip_cols)) if _ipds_detect("interacciones", ip_cols) else 0,
                 key="ipds_inter",
             )
             ip_fecha = ic2.selectbox(
-                "Fecha de publicación", _iopt,
+                _t("ipds_col_pub_date"), _iopt,
                 index=_iopt.index(_ipds_detect("fecha", ip_cols) or _ina),
                 key="ipds_fecha",
             )
@@ -1550,7 +1461,7 @@ compensar una dimensión con la otra.
 
             all_networks = sorted(posts_mapped["red"].dropna().unique().tolist())
             sel_networks = st.multiselect(
-                "Redes a incluir", all_networks, default=all_networks,
+                _t("ipds_networks_filter"), all_networks, default=all_networks,
                 key="ipds_networks",
             )
             if sel_networks:
@@ -1559,13 +1470,13 @@ compensar una dimensión con la otra.
                 posts_filtered = posts_mapped
 
             n_brands = posts_filtered["marca"].nunique()
-            st.caption("{} posts · {} marcas · {} redes".format(
+            st.caption(_t("ipds_brands_networks").format(
                 len(posts_filtered), n_brands, len(sel_networks or all_networks)))
 
             if n_brands < 2:
-                st.warning("El IPD-S compara marcas entre sí. Se necesitan al menos 2 marcas.")
+                st.warning(_t("ipds_min_brands"))
             else:
-                if st.button("Calcular IPD-S", type="primary", key="calc_ipds"):
+                if st.button(_t("ipds_calculate"), type="primary", key="calc_ipds"):
                     st.session_state["ipds_ready"] = True
 
                 if st.session_state.get("ipds_ready"):
@@ -1579,8 +1490,8 @@ compensar una dimensión con la otra.
                         if dim_fig is not None:
                             st.plotly_chart(dim_fig, use_container_width=True)
 
-                        st.subheader("Detalle por marca")
+                        st.subheader(_t("ipds_detail"))
                         st.dataframe(ipds_result, hide_index=True,
                                      use_container_width=True)
                     except Exception as e:
-                        st.error("Error al calcular el IPD-S: {}".format(e))
+                        st.error(_t("ipds_error").format(e))

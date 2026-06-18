@@ -149,6 +149,7 @@ TEXTS = {
     "clasif_all": {"pt": "Todas", "es": "Todas"},
     "clasif_all_m": {"pt": "Todos", "es": "Todos"},
     "page_of": {"pt": "Página **{}** de **{}** · {} comentários", "es": "Página **{}** de **{}** · {} comentarios"},
+    "page_of_html": {"pt": "Página <b>{}</b> de <b>{}</b> · {} comentários", "es": "Página <b>{}</b> de <b>{}</b> · {} comentarios"},
     "save_changes": {"pt": "Salvar alterações", "es": "Guardar cambios"},
     "changes_saved": {"pt": "Alterações salvas.", "es": "Cambios guardados."},
     "download_corrected": {"pt": "Baixar base corrigida (XLSX)", "es": "Descargar base corregida (XLSX)"},
@@ -183,6 +184,240 @@ TEXTS = {
     "stage_generating_report": {"pt": "Gerando relatório...", "es": "Generando reporte..."},
     "stage_completed": {"pt": "Concluído", "es": "Completado"},
     "stage_error": {"pt": "Erro", "es": "Error"},
+
+    # ── Status labels ──
+    "status_pending": {"pt": "Pendente", "es": "Pendiente"},
+    "status_creating": {"pt": "Criando", "es": "Creando"},
+    "status_queueing": {"pt": "Na fila", "es": "En cola"},
+    "status_progress": {"pt": "Em progresso", "es": "En progreso"},
+    "status_done": {"pt": "Concluído", "es": "Completado"},
+    "status_error": {"pt": "Erro", "es": "Error"},
+    "status_timeout": {"pt": "Tempo esgotado", "es": "Tiempo agotado"},
+    "status_skipped": {"pt": "Ignorado", "es": "Omitido"},
+    "status_no_comments": {"pt": "Sem comentários", "es": "Sin comentarios"},
+    "status_post_deleted": {"pt": "Post excluído ou indisponível", "es": "Post eliminado o no disponible"},
+
+    # ── Column labels ──
+    "col_label_link": {"pt": "Link", "es": "Link"},
+    "col_label_network": {"pt": "Rede", "es": "Red"},
+    "col_label_status": {"pt": "Estado", "es": "Estado"},
+    "col_label_comments": {"pt": "Comentários", "es": "Comentarios"},
+    "col_label_comments_collected": {"pt": "Comentários coletados", "es": "Comentarios recolectados"},
+    "col_label_error": {"pt": "Erro", "es": "Error"},
+    "col_label_file": {"pt": "Arquivo", "es": "Archivo"},
+
+    # ── Tab Exportação (strings restantes) ──
+    "error_reading_file": {"pt": "Erro ao ler o arquivo: {}", "es": "Error al leer el archivo: {}"},
+    "error_processing": {"pt": "Erro ao processar: {}", "es": "Error al procesar: {}"},
+    "network_count_column": {"pt": "Quantidade", "es": "Cantidad"},
+
+    # ── Tab Execuções (strings restantes) ──
+    "avg_time_eta": {
+        "pt": "Tempo médio por link: {} · Tempo restante estimado: {} ({} pendentes)",
+        "es": "Tiempo promedio por link: {} · Tiempo restante estimado: {} ({} pendientes)",
+    },
+    "failed_jobs_caption": {"pt": "{} link(s) não conseguiram criar o job de exportação.", "es": "{} link(s) no pudieron crear el job de exportación."},
+    "retry_failed_jobs": {"pt": "Reintentar links com erro ao criar job", "es": "Reintentar links con error al crear job"},
+
+    # ── Dashboard (strings restantes) ──
+    "visualization": {"pt": "Visualização", "es": "Visualización"},
+    "viz_topics_sentiment": {"pt": "Temas × Sentimento", "es": "Temas × Sentimiento"},
+    "viz_priority": {"pt": "Prioridade", "es": "Prioridad"},
+    "viz_topics_network": {"pt": "Temas × Rede", "es": "Temas × Red"},
+    "not_enough_text_cloud": {"pt": "Não há texto suficiente para gerar a nuvem.", "es": "No hay suficiente texto para generar la nube."},
+    "no_comments_found_word": {"pt": "Não foram encontrados comentários com '{}'.", "es": "No se encontraron comentarios con '{}'."},
+    "no_pub_dates": {"pt": "Não há datas de publicação disponíveis.", "es": "No hay fechas de publicación disponibles."},
+    "rows_columns_mapped": {"pt": "{} linhas · {} colunas mapeadas", "es": "{} filas · {} columnas mapeadas"},
+
+    # ── Upload base própria (selectbox labels) ──
+    "col_comment_required": {"pt": "Comentário (obrigatório)", "es": "Comentario (requerido)"},
+    "col_network_required": {"pt": "Rede / Plataforma (obrigatório)", "es": "Red / Plataforma (requerido)"},
+    "col_sentiment": {"pt": "Sentimento", "es": "Sentimiento"},
+    "col_brand": {"pt": "Marca", "es": "Marca"},
+    "col_author": {"pt": "Autor", "es": "Autor"},
+    "col_likes": {"pt": "Likes", "es": "Likes"},
+    "col_comment_date": {"pt": "Data do comentário", "es": "Fecha del comentario"},
+    "col_post_link": {"pt": "Link do post", "es": "Link del post"},
+    "upload_xlsx_csv": {"pt": "Arquivo XLSX ou CSV", "es": "Archivo XLSX o CSV"},
+
+    # ── Análise — engine label ──
+    "engine_ai": {"pt": "IA (Claude Haiku)", "es": "IA (Claude Haiku)"},
+    "engine_local": {"pt": "modelo local (pysentimiento)", "es": "modelo local (pysentimiento)"},
+
+    # ── Análise — corrected upload errors ──
+    "error_corrected_columns": {
+        "pt": "O arquivo deve ter uma aba 'Comentarios' com pelo menos as colunas: Red, Sentimiento, Comentario.",
+        "es": "El archivo debe tener una hoja 'Comentarios' con al menos las columnas: Red, Sentimiento, Comentario.",
+    },
+
+    # ── Tab Classificação (strings restantes) ──
+    "clasif_source_run": {"pt": "Execução exportada", "es": "Ejecución exportada"},
+    "clasif_source_upload": {"pt": "Base enviada", "es": "Base subida"},
+    "no_runs_with_analysis": {"pt": "Não há execuções com análise.", "es": "No hay ejecuciones con análisis."},
+
+    # ── IPDS (strings restantes) ──
+    "ipds_methodology": {"pt": "Metodologia do IPD-S", "es": "Metodología del IPD-S"},
+    "ipds_what_is": {"pt": "O que é o IPD-S?", "es": "¿Qué es el IPD-S?"},
+    "ipds_what_is_desc": {
+        "pt": "O Indicador de Presença Digital Social (IPD-S) é um índice composto que avalia a eficácia da comunicação digital de marcas em redes sociais. Inspirado na metodologia do IDH (Índice de Desenvolvimento Humano) do PNUD, combina múltiplas dimensões num único número de 0 a 1.",
+        "es": "El Indicador de Presencia Digital Social (IPD-S) es un índice compuesto que evalúa la eficacia de la comunicación digital de marcas en redes sociales. Inspirado en la metodología del IDH (Índice de Desarrollo Humano) del PNUD, combina múltiples dimensiones en un único número de 0 a 1.",
+    },
+    "ipds_col_profile_required": {"pt": "Perfil / Marca (obrigatório)", "es": "Perfil / Marca (requerido)"},
+    "ipds_col_network_required": {"pt": "Rede social (obrigatório)", "es": "Red social (requerido)"},
+    "ipds_col_interactions_required": {"pt": "Interações (obrigatório)", "es": "Interacciones (requerido)"},
+    "ipds_col_pub_date": {"pt": "Data de publicação", "es": "Fecha de publicación"},
+    "ipds_map_columns": {"pt": "Mapeie as colunas do seu arquivo:", "es": "Mapea las columnas de tu archivo:"},
+
+    # ── Comments counter during analysis ──
+    "comments_counter": {"pt": "{}/{} comentários", "es": "{}/{} comentarios"},
+
+    # ── Detractors table column headers ──
+    "negative_comments_col": {"pt": "Comentários negativos", "es": "Comentarios negativos"},
+    "positive_comments_col": {"pt": "Comentários positivos", "es": "Comentarios positivos"},
+
+    # ── Misc ──
+    "search_placeholder": {"pt": "Texto...", "es": "Texto..."},
+
+    # ── IPDS methodology ──
+    "ipds_methodology_text": {
+        "pt": """**O que e o IPD-S?**
+
+O Indicador de Presenca Digital Social (IPD-S) e um indice composto
+que avalia a eficacia da comunicacao digital de marcas em redes
+sociais. Inspirado na metodologia do IDH (Indice de Desenvolvimento
+Humano) do PNUD, combina multiplas dimensoes num unico numero
+de 0 a 1.
+
+**Dimensoes**
+
+| Dimensao | O que mede | Como se calcula |
+|---|---|---|
+| **Atividade** | Frequencia de publicacao | Posts/mes, normalizado por rede |
+| **Engagement** | Ressonancia do conteudo | Interacoes/post, normalizado por rede |
+| **Multicanal** | Diversificacao de plataformas | N de redes ativas / total de redes |
+| **Sentimento** | Saude da percepcao de marca | % de comentarios positivos *(opcional)* |
+
+**Normalizacao por plataforma**
+
+Cada rede social tem um comportamento distinto — o volume de
+interacoes no TikTok nao e comparavel ao do Facebook. Por isso, as
+dimensoes de Atividade e Engagement sao calculadas **dentro de cada rede**
+primeiro (comparando marcas entre si nessa plataforma) e depois sao
+agregadas como media dos scores por rede.
+
+Usa-se escala logaritmica (`log(1 + x)`) antes da normalizacao
+min-max para suavizar distorcoes causadas por outliers, seguindo
+a pratica do IDH para a dimensao de renda.
+
+**Formula**
+
+`IPD-S = (D1 x D2 x D3 x ... x Dn) ^ (1/n)` — media geometrica
+
+A media geometrica (em vez de aritmetica) penaliza desequilibrios:
+uma marca com engagement altissimo mas atividade zero nao pode
+compensar uma dimensao com a outra.
+
+**Escala e niveis**
+
+| Nivel | Intervalo | Interpretacao |
+|---|---|---|
+| Muito baixo | 0,00 - 0,20 | Presenca digital fragil ou incipiente |
+| Baixo | 0,20 - 0,40 | Presenca abaixo da media do grupo |
+| Medio | 0,40 - 0,60 | Presenca media, com espaco para evoluir |
+| Alto | 0,60 - 0,80 | Presenca solida e consistente |
+| Muito alto | 0,80 - 1,00 | Referencia digital no grupo analisado |
+
+**Como ler o termometro?**
+
+- As marcas posicionadas **mais a esquerda** (zona vermelha/laranja)
+  tem uma presenca digital fraca no grupo: publicam pouco,
+  geram baixo engagement, ou estao presentes em poucas redes. Precisam
+  de atencao e estrategia para melhorar seu posicionamento.
+- As marcas posicionadas **mais a direita** (zona verde) dominam
+  a conversa digital: publicam com frequencia, geram alto
+  engagement relativo a sua plataforma, estao diversificadas em
+  multiplas redes e (se ha dados) tem um sentimento positivo.
+  Sao a referencia do grupo.
+
+**Limitacoes**
+
+- O IPD-S e relativo ao grupo de marcas analisado, nao absoluto.
+  Adicionar ou remover uma marca pode alterar os scores das demais.
+- Nao considera dark posts, midia paga isolada, Google, imprensa, Wikipedia
+  ou outras camadas do digital fora das redes sociais.
+- A dimensao de Sentimento depende da disponibilidade de analise
+  de comentarios (pode ser omitida se nao ha dados).
+""",
+        "es": """**Que es el IPD-S?**
+
+El Indicador de Presencia Digital Social (IPD-S) es un indice compuesto
+que evalua la eficacia de la comunicacion digital de marcas en redes
+sociales. Inspirado en la metodologia del IDH (Indice de Desarrollo
+Humano) del PNUD, combina multiples dimensiones en un unico numero
+de 0 a 1.
+
+**Dimensiones**
+
+| Dimension | Que mide | Como se calcula |
+|---|---|---|
+| **Actividad** | Frecuencia de publicacion | Posts/mes, normalizado por red |
+| **Engagement** | Resonancia del contenido | Interacciones/post, normalizado por red |
+| **Multicanal** | Diversificacion de plataformas | N de redes activas / total de redes |
+| **Sentimiento** | Salud de la percepcion de marca | % de comentarios positivos *(opcional)* |
+
+**Normalizacion por plataforma**
+
+Cada red social tiene un comportamiento distinto — el volumen de
+interacciones en TikTok no es comparable al de Facebook. Por eso, las
+dimensiones de Actividad y Engagement se calculan **dentro de cada red**
+primero (comparando marcas entre si en esa plataforma) y luego se
+agregan como promedio de los scores por red.
+
+Se usa escala logaritmica (`log(1 + x)`) antes de la normalizacion
+min-max para suavizar distorsiones causadas por outliers, siguiendo
+la practica del IDH para la dimension de ingreso.
+
+**Formula**
+
+`IPD-S = (D1 x D2 x D3 x ... x Dn) ^ (1/n)` — media geometrica
+
+La media geometrica (en vez de aritmetica) penaliza desequilibrios:
+una marca con engagement altisimo pero actividad cero no puede
+compensar una dimension con la otra.
+
+**Escala y niveles**
+
+| Nivel | Intervalo | Interpretacion |
+|---|---|---|
+| Muy bajo | 0,00 - 0,20 | Presencia digital fragil o incipiente |
+| Bajo | 0,20 - 0,40 | Presencia por debajo del promedio del grupo |
+| Medio | 0,40 - 0,60 | Presencia promedio, con espacio para evolucionar |
+| Alto | 0,60 - 0,80 | Presencia solida y consistente |
+| Muy alto | 0,80 - 1,00 | Referencia digital en el grupo analizado |
+
+**Como leer el termometro?**
+
+- Las marcas posicionadas **mas a la izquierda** (zona roja/naranja)
+  tienen una presencia digital debil en el grupo: publican poco,
+  generan bajo engagement, o estan presentes en pocas redes. Requieren
+  atencion y estrategia para mejorar su posicionamiento.
+- Las marcas posicionadas **mas a la derecha** (zona verde) dominan
+  la conversacion digital: publican con frecuencia, generan alto
+  engagement relativo a su plataforma, estan diversificadas en
+  multiples redes y (si hay datos) tienen un sentimiento positivo.
+  Son la referencia del grupo.
+
+**Limitaciones**
+
+- El IPD-S es relativo al grupo de marcas analizado, no absoluto.
+  Agregar o quitar una marca puede alterar los scores de las demas.
+- No considera dark posts, pauta aislada, Google, prensa, Wikipedia
+  u otras capas del digital fuera de las redes sociales.
+- La dimension de Sentimiento depende de la disponibilidad de analisis
+  de comentarios (puede omitirse si no hay datos).
+""",
+    },
+    "brand": {"pt": "Marca", "es": "Marca"},
 }
 
 
