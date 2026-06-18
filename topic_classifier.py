@@ -313,7 +313,8 @@ DICTIONARIES = {
                 "campaña", "acción promocional", "activación", "sorteo",
                 "dinámica", "concurso", "evento", "alianza", "collab",
                 "lanzamiento", "julio regalado", "buen fin", "hot sale",
-                "black friday", "cyber monday",
+                "black friday", "cyber monday", "cumpleañeros", "vinculo",
+                "dale play", "se te nota la pasión", "casa falabella",
             ],
             "Educação financeira": [
                 # PT-BR
