@@ -142,9 +142,18 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     counts = df["Sentimiento"].value_counts()
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Comentarios analizados", total)
-    col2.metric("Positivo", int(counts.get("Positivo", 0)))
-    col3.metric("Neutral", int(counts.get("Neutral", 0)))
-    col4.metric("Negativo", int(counts.get("Negativo", 0)))
+    _sent_html = (
+        '<div style="text-align:center">'
+        '<p style="font-size:0.85rem;color:#666;margin:0">{label}</p>'
+        '<p style="font-size:1.8rem;font-weight:700;color:{color};margin:0">{value}</p>'
+        '</div>'
+    )
+    col2.markdown(_sent_html.format(label="Positivo", color="#2ecc71",
+                  value=int(counts.get("Positivo", 0))), unsafe_allow_html=True)
+    col3.markdown(_sent_html.format(label="Neutral", color="#95a5a6",
+                  value=int(counts.get("Neutral", 0))), unsafe_allow_html=True)
+    col4.markdown(_sent_html.format(label="Negativo", color="#e74c3c",
+                  value=int(counts.get("Negativo", 0))), unsafe_allow_html=True)
 
     chart_df = df.rename(columns={v: k for k, v in REPORT_COLUMN_LABELS.items()})
 
@@ -434,7 +443,8 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
             sel_marca_wc = st.selectbox(
                 "Marca", marcas, key="{}_wc_marca_select".format(key_prefix),
             )
-            img = build_wordcloud_image(active_path, mtime, marca=sel_marca_wc)
+            marca_texts = df[df["Marca"] == sel_marca_wc]["Comentario"].dropna()
+            img = charts.wordcloud_image(marca_texts) if not marca_texts.empty else None
             if img is not None:
                 st.image(img, use_container_width=True)
             else:
