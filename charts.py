@@ -6,6 +6,53 @@ import plotly.express as px
 from wordcloud import WordCloud
 
 SENTIMENT_ORDER = ["Positivo", "Neutral", "Negativo"]
+
+_CHART_LABELS = {
+    "pt": {
+        "general_sentiment": "Sentimento geral",
+        "sentiment_by_network": "Sentimento por rede",
+        "sentiment_over_time": "Sentimento ao longo do tempo",
+        "sentiment_by_brand": "Sentimento por marca",
+        "sentiment_by_brand_time": "Sentimento por marca ao longo do tempo",
+        "sentiment_by_network_time": "Sentimento por rede ao longo do tempo",
+        "topics_sentiment": "Temas × Sentimento",
+        "priority": "Prioridade: volume × negatividade × engajamento",
+        "topics_network": "Temas × Rede",
+        "dimensions_ipds": "Dimensões do IPD-S por marca",
+        "network": "Rede",
+        "sentiment": "Sentimento",
+        "brand": "Marca",
+        "month": "Mês",
+        "topic": "Tema",
+        "quantity": "Quantidade",
+        "comments": "Comentários",
+        "pct_negative": "% Negativo",
+    },
+    "es": {
+        "general_sentiment": "Sentimiento general",
+        "sentiment_by_network": "Sentimiento por red",
+        "sentiment_over_time": "Sentimiento en el tiempo",
+        "sentiment_by_brand": "Sentimiento por marca",
+        "sentiment_by_brand_time": "Sentimiento por marca en el tiempo",
+        "sentiment_by_network_time": "Sentimiento por red en el tiempo",
+        "topics_sentiment": "Temas × Sentimiento",
+        "priority": "Prioridad: volumen × negatividad × engagement",
+        "topics_network": "Temas × Red",
+        "dimensions_ipds": "Dimensiones del IPD-S por marca",
+        "network": "Red",
+        "sentiment": "Sentimiento",
+        "brand": "Marca",
+        "month": "Mes",
+        "topic": "Tema",
+        "quantity": "Cantidad",
+        "comments": "Comentarios",
+        "pct_negative": "% Negativo",
+    },
+}
+
+
+def _cl(key, lang="pt"):
+    return _CHART_LABELS.get(lang, _CHART_LABELS["pt"]).get(key, key)
 SENTIMENT_COLORS = {"Positivo": "#2ecc71", "Neutral": "#95a5a6", "Negativo": "#e74c3c"}
 
 WIPER_PALETTE = ["#182E4C", "#09B7E9", "#A73253", "#8B9297", "#C5A745"]
@@ -161,153 +208,130 @@ def wordcloud_image(texts, width=600, height=350, colormap=None):
     return wc.generate(cleaned).to_image()
 
 
-def donut_sentiment(df):
+def donut_sentiment(df, lang="pt"):
     counts = df["sentimiento"].value_counts().reindex(SENTIMENT_ORDER, fill_value=0).reset_index()
-    counts.columns = ["Sentimiento", "Cantidad"]
+    counts.columns = [_cl("sentiment", lang), _cl("quantity", lang)]
     return px.pie(
-        counts, names="Sentimiento", values="Cantidad", hole=0.5,
-        color="Sentimiento", color_discrete_map=SENTIMENT_COLORS,
-        title="Sentimiento general",
+        counts, names=_cl("sentiment", lang), values=_cl("quantity", lang), hole=0.5,
+        color=_cl("sentiment", lang), color_discrete_map=SENTIMENT_COLORS,
+        title=_cl("general_sentiment", lang),
     )
 
 
-def bar_by_network(df):
-    by_network = df.groupby(["red", "sentimiento"]).size().reset_index(name="Cantidad")
+def bar_by_network(df, lang="pt"):
+    by_network = df.groupby(["red", "sentimiento"]).size().reset_index(name=_cl("quantity", lang))
     return px.bar(
-        by_network, x="red", y="Cantidad", color="sentimiento",
+        by_network, x="red", y=_cl("quantity", lang), color="sentimiento",
         barmode="group", category_orders={"sentimiento": SENTIMENT_ORDER},
         color_discrete_map=SENTIMENT_COLORS,
-        title="Sentimiento por red", labels={"red": "Red", "sentimiento": "Sentimiento"},
+        title=_cl("sentiment_by_network", lang),
+        labels={"red": _cl("network", lang), "sentimiento": _cl("sentiment", lang)},
     )
 
 
-def line_over_time(df):
+def line_over_time(df, lang="pt"):
     with_date = df.dropna(subset=["fecha_comentario"]).copy()
     if with_date.empty:
         return None
     with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
-    over_time = with_date.groupby(["mes", "sentimiento"]).size().reset_index(name="Cantidad")
+    over_time = with_date.groupby(["mes", "sentimiento"]).size().reset_index(name=_cl("quantity", lang))
     return px.line(
-        over_time, x="mes", y="Cantidad", color="sentimiento",
+        over_time, x="mes", y=_cl("quantity", lang), color="sentimiento",
         category_orders={"sentimiento": SENTIMENT_ORDER},
         color_discrete_map=SENTIMENT_COLORS,
-        title="Sentimiento en el tiempo", markers=True,
-        labels={"mes": "Mes", "sentimiento": "Sentimiento"},
+        title=_cl("sentiment_over_time", lang), markers=True,
+        labels={"mes": _cl("month", lang), "sentimiento": _cl("sentiment", lang)},
     )
 
 
-def bar_by_brand(df):
-    by_brand = df.groupby(["marca", "sentimiento"]).size().reset_index(name="Cantidad")
+def bar_by_brand(df, lang="pt"):
+    by_brand = df.groupby(["marca", "sentimiento"]).size().reset_index(name=_cl("quantity", lang))
     return px.bar(
-        by_brand, x="marca", y="Cantidad", color="sentimiento",
+        by_brand, x="marca", y=_cl("quantity", lang), color="sentimiento",
         barmode="group", category_orders={"sentimiento": SENTIMENT_ORDER},
         color_discrete_map=SENTIMENT_COLORS,
-        title="Sentimiento por marca", labels={"marca": "Marca", "sentimiento": "Sentimiento"},
+        title=_cl("sentiment_by_brand", lang),
+        labels={"marca": _cl("brand", lang), "sentimiento": _cl("sentiment", lang)},
     )
 
 
-def line_over_time_by_brand(df):
+def line_over_time_by_network(df, lang="pt"):
     with_date = df.dropna(subset=["fecha_comentario"]).copy()
     if with_date.empty:
         return None
     with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
-    brand_networks = with_date.groupby("marca")["red"].apply(
-        lambda s: ", ".join(sorted(s.dropna().unique()))).to_dict()
-    with_date["_marca_label"] = with_date["marca"].map(
-        lambda m: "{} ({})".format(m, brand_networks.get(m, "")) if brand_networks.get(m) else m
-    )
-    over_time = with_date.groupby(["mes", "_marca_label", "sentimiento"]).size().reset_index(name="Cantidad")
-    n_brands = over_time["_marca_label"].nunique()
+    over_time = with_date.groupby(["mes", "red", "sentimiento"]).size().reset_index(name=_cl("quantity", lang))
     fig = px.line(
-        over_time, x="mes", y="Cantidad", color="sentimiento", facet_col="_marca_label",
-        facet_col_wrap=1,
+        over_time, x="mes", y=_cl("quantity", lang), color="sentimiento",
+        facet_col="red", facet_col_wrap=2,
         category_orders={"sentimiento": SENTIMENT_ORDER},
         color_discrete_map=SENTIMENT_COLORS,
-        title="Sentimiento por marca en el tiempo", markers=True,
-        labels={"mes": "Mes", "sentimiento": "Sentimiento", "_marca_label": "Marca"},
-    )
-    fig.update_yaxes(matches=None, showticklabels=True)
-    fig.update_layout(height=max(350, n_brands * 200))
-    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=", 1)[-1]))
-    return fig
-
-
-def line_over_time_by_network(df):
-    with_date = df.dropna(subset=["fecha_comentario"]).copy()
-    if with_date.empty:
-        return None
-    with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
-    over_time = with_date.groupby(["mes", "red", "sentimiento"]).size().reset_index(name="Cantidad")
-    fig = px.line(
-        over_time, x="mes", y="Cantidad", color="sentimiento", facet_col="red", facet_col_wrap=2,
-        category_orders={"sentimiento": SENTIMENT_ORDER},
-        color_discrete_map=SENTIMENT_COLORS,
-        title="Sentimiento por red en el tiempo", markers=True,
-        labels={"mes": "Mes", "sentimiento": "Sentimiento", "red": "Red"},
+        title=_cl("sentiment_by_network_time", lang), markers=True,
+        labels={"mes": _cl("month", lang), "sentimiento": _cl("sentiment", lang),
+                "red": _cl("network", lang)},
     )
     fig.update_yaxes(matches=None, showticklabels=True)
     fig.for_each_annotation(lambda a: a.update(text=a.text.split("=", 1)[-1]))
     return fig
 
 
-def bubble_matrix_tema_sentimiento(df, tema_col="tema"):
-    """Bubble matrix: Tema × Sentimiento. Tamaño = cantidad de comentarios."""
+def bubble_matrix_tema_sentimiento(df, tema_col="tema", lang="pt"):
     if tema_col not in df.columns or "sentimiento" not in df.columns:
         return None
     filtered = df[~df[tema_col].isin(["Otros", "Outros"])]
     agg = (filtered.groupby([tema_col, "sentimiento"]).size()
-           .reset_index(name="Cantidad"))
+           .reset_index(name=_cl("quantity", lang)))
     if agg.empty:
         return None
     fig = px.scatter(
-        agg, x="sentimiento", y=tema_col, size="Cantidad", color="sentimiento",
-        size_max=50,
+        agg, x="sentimiento", y=tema_col, size=_cl("quantity", lang),
+        color="sentimiento", size_max=50,
         category_orders={"sentimiento": SENTIMENT_ORDER},
         color_discrete_map=SENTIMENT_COLORS,
-        title="Temas × Sentimiento",
-        labels={tema_col: "Tema", "sentimiento": "Sentimiento", "Cantidad": "Comentarios"},
+        title=_cl("topics_sentiment", lang),
+        labels={tema_col: _cl("topic", lang), "sentimiento": _cl("sentiment", lang),
+                _cl("quantity", lang): _cl("comments", lang)},
     )
     fig.update_layout(showlegend=False, yaxis={"categoryorder": "total ascending"})
     return fig
 
 
-def bubble_prioridad(df, tema_col="tema"):
-    """Bubble de prioridad: X=volumen, Y=%negativo, tamaño=likes, color=tema."""
+def bubble_prioridad(df, tema_col="tema", lang="pt"):
     if tema_col not in df.columns or "sentimiento" not in df.columns:
         return None
     filtered = df[~df[tema_col].isin(["Otros", "Outros"])]
+    _comments = _cl("comments", lang)
     grouped = filtered.groupby(tema_col).agg(
-        Comentarios=("sentimiento", "size"),
+        **{_comments: ("sentimiento", "size")},
         Negativos=("sentimiento", lambda s: (s == "Negativo").sum()),
         Likes=("likes", lambda s: s.fillna(0).sum() if "likes" in df.columns else 0),
     ).reset_index()
-    grouped["% Negativo"] = (grouped["Negativos"] / grouped["Comentarios"] * 100).round(1)
+    grouped[_cl("pct_negative", lang)] = (grouped["Negativos"] / grouped[_comments] * 100).round(1)
     grouped["Likes"] = grouped["Likes"].fillna(0).astype(int)
-    grouped = grouped[grouped["Comentarios"] > 0]
+    grouped = grouped[grouped[_comments] > 0]
     if grouped.empty:
         return None
     fig = px.scatter(
-        grouped, x="Comentarios", y="% Negativo",
+        grouped, x=_comments, y=_cl("pct_negative", lang),
         size="Likes", color=tema_col, text=tema_col,
         size_max=50,
-        title="Prioridad: volumen × negatividad × engagement",
-        labels={tema_col: "Tema"},
+        title=_cl("priority", lang),
+        labels={tema_col: _cl("topic", lang)},
     )
     fig.update_traces(textposition="top center", textfont_size=10)
     fig.update_layout(showlegend=False)
     return fig
 
 
-def heatmap_tema_red(df, tema_col="tema"):
-    """Heatmap: Tema × Red. Color = cantidad de comentarios."""
+def heatmap_tema_red(df, tema_col="tema", lang="pt"):
     if tema_col not in df.columns or "red" not in df.columns:
         return None
     filtered = df[~df[tema_col].isin(["Otros", "Outros"])]
     agg = (filtered.groupby([tema_col, "red"]).size()
-           .reset_index(name="Cantidad"))
+           .reset_index(name="cnt"))
     if agg.empty:
         return None
-    pivot = agg.pivot(index=tema_col, columns="red", values="Cantidad").fillna(0)
+    pivot = agg.pivot(index=tema_col, columns="red", values="cnt").fillna(0)
     pivot = pivot.loc[pivot.sum(axis=1).sort_values(ascending=True).index]
     import plotly.graph_objects as go
     fig = go.Figure(data=go.Heatmap(
@@ -319,9 +343,9 @@ def heatmap_tema_red(df, tema_col="tema"):
         hovertemplate="Tema: %{y}<br>Red: %{x}<br>Comentarios: %{z}<extra></extra>",
     ))
     fig.update_layout(
-        title="Temas × Red",
-        xaxis_title="Red",
-        yaxis_title="Tema",
+        title=_cl("topics_network", lang),
+        xaxis_title=_cl("network", lang),
+        yaxis_title=_cl("topic", lang),
     )
     return fig
 

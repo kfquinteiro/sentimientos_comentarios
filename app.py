@@ -165,8 +165,8 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     chart_df = df.rename(columns={v: k for k, v in REPORT_COLUMN_LABELS.items()})
 
     col1, col2 = st.columns(2)
-    col1.plotly_chart(charts.donut_sentiment(chart_df), use_container_width=True)
-    col2.plotly_chart(charts.bar_by_network(chart_df), use_container_width=True)
+    col1.plotly_chart(charts.donut_sentiment(chart_df, lang=_lang()), use_container_width=True)
+    col2.plotly_chart(charts.bar_by_network(chart_df, lang=_lang()), use_container_width=True)
 
     _time_marcas = ["Todas"] + sorted(chart_df["marca"].dropna().unique().tolist()) if "marca" in chart_df.columns else ["Todas"]
     _time_marca = st.selectbox(
@@ -175,11 +175,11 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     ) if len(_time_marcas) > 2 else "Todas"
     _time_df = chart_df if _time_marca == "Todas" else chart_df[chart_df["marca"] == _time_marca]
 
-    time_fig = charts.line_over_time(_time_df)
+    time_fig = charts.line_over_time(_time_df, lang=_lang())
     if time_fig is not None:
         st.plotly_chart(time_fig, use_container_width=True)
 
-    time_by_network_fig = charts.line_over_time_by_network(_time_df)
+    time_by_network_fig = charts.line_over_time_by_network(_time_df, lang=_lang())
     if time_by_network_fig is not None:
         st.plotly_chart(time_by_network_fig, use_container_width=True)
 
@@ -212,11 +212,11 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
         horizontal=True, key="{}_tema_chart".format(key_prefix),
     )
     if tema_chart == _viz_opts[0]:
-        fig = charts.bubble_matrix_tema_sentimiento(chart_df)
+        fig = charts.bubble_matrix_tema_sentimiento(chart_df, lang=_lang())
     elif tema_chart == _viz_opts[1]:
-        fig = charts.bubble_prioridad(chart_df)
+        fig = charts.bubble_prioridad(chart_df, lang=_lang())
     else:
-        fig = charts.heatmap_tema_red(chart_df)
+        fig = charts.heatmap_tema_red(chart_df, lang=_lang())
     if fig is not None:
         st.plotly_chart(fig, use_container_width=True)
 
@@ -458,7 +458,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
         if len(marcas) > 1:
             st.subheader(_t("brand_comparison"))
 
-            st.plotly_chart(charts.bar_by_brand(chart_df), use_container_width=True)
+            st.plotly_chart(charts.bar_by_brand(chart_df, lang=_lang()), use_container_width=True)
 
             st.markdown("**{}**".format(_t("wordcloud_by_brand")))
             sel_marca_wc = st.selectbox(
