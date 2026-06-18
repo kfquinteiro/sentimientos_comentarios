@@ -417,6 +417,65 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     else:
         st.caption("No hay fechas de publicación disponibles.")
 
+    # ── Clasificación manual de sentimiento ──────────────────────────────
+    st.subheader("Clasificación manual de sentimiento")
+    st.caption("Corrige el sentimiento de comentarios individuales. "
+               "Solo la columna Sentimiento es editable.")
+
+    _ef1, _ef2, _ef3 = st.columns(3)
+    _search_text = _ef1.text_input(
+        "Buscar en comentario", key="{}_edit_search".format(key_prefix),
+        placeholder="Filtrar por texto...",
+    )
+    _redes_edit = ["Todas"] + sorted(df["Red"].dropna().unique().tolist()) if "Red" in df.columns else ["Todas"]
+    _sent_edit = ["Todos", "Positivo", "Neutral", "Negativo"]
+    _sel_red_e = _ef2.selectbox("Red", _redes_edit, key="{}_edit_red".format(key_prefix))
+    _sel_sent_e = _ef3.selectbox("Sentimiento", _sent_edit, key="{}_edit_sent".format(key_prefix))
+
+    edit_df = df.copy()
+    if _search_text.strip():
+        edit_df = edit_df[edit_df["Comentario"].str.lower().str.contains(
+            _search_text.strip().lower(), na=False)]
+    if _sel_red_e != "Todas" and "Red" in edit_df.columns:
+        edit_df = edit_df[edit_df["Red"] == _sel_red_e]
+    if _sel_sent_e != "Todos" and "Sentimiento" in edit_df.columns:
+        edit_df = edit_df[edit_df["Sentimiento"] == _sel_sent_e]
+
+    _page_size = 50
+    _total_rows = len(edit_df)
+    _total_pages = max(1, -(-_total_rows // _page_size))
+    _pc1, _pc2 = st.columns([1, 3])
+    _page = _pc1.number_input(
+        "Página", 1, _total_pages, 1, key="{}_edit_page".format(key_prefix))
+    _pc2.caption("{} comentarios filtrados · {} páginas".format(_total_rows, _total_pages))
+    _start = (_page - 1) * _page_size
+    _page_df = edit_df.iloc[_start:_start + _page_size]
+
+    _show_cols = [c for c in ["Red", "Marca", "Autor", "Comentario", "Likes", "Sentimiento"]
+                  if c in _page_df.columns]
+    _disabled = [c for c in _show_cols if c != "Sentimiento"]
+
+    _edited = st.data_editor(
+        _page_df[_show_cols],
+        column_config={
+            "Sentimiento": st.column_config.SelectboxColumn(
+                "Sentimiento",
+                options=["Positivo", "Neutral", "Negativo"],
+                required=True,
+            ),
+        },
+        disabled=_disabled,
+        hide_index=True,
+        use_container_width=True,
+        key="{}_editor".format(key_prefix),
+    )
+
+    if st.button("Guardar cambios", type="primary", key="{}_save_edit".format(key_prefix)):
+        df.loc[_edited.index, "Sentimiento"] = _edited["Sentimiento"]
+        df.to_excel(active_path, sheet_name="Comentarios", index=False)
+        st.success("Cambios guardados — {} comentarios actualizados.".format(len(_edited)))
+        st.rerun()
+
     if show_brand_comparison and "Marca" in df.columns:
         marcas = sorted(df["Marca"].dropna().unique().tolist())
         if len(marcas) > 1:
