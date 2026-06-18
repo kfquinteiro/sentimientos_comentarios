@@ -211,15 +211,20 @@ def line_over_time_by_brand(df):
     if with_date.empty:
         return None
     with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
-    over_time = with_date.groupby(["mes", "marca", "sentimiento"]).size().reset_index(name="Cantidad")
-    n_brands = over_time["marca"].nunique()
+    brand_networks = with_date.groupby("marca")["red"].apply(
+        lambda s: ", ".join(sorted(s.dropna().unique()))).to_dict()
+    with_date["_marca_label"] = with_date["marca"].map(
+        lambda m: "{} ({})".format(m, brand_networks.get(m, "")) if brand_networks.get(m) else m
+    )
+    over_time = with_date.groupby(["mes", "_marca_label", "sentimiento"]).size().reset_index(name="Cantidad")
+    n_brands = over_time["_marca_label"].nunique()
     fig = px.line(
-        over_time, x="mes", y="Cantidad", color="sentimiento", facet_col="marca",
+        over_time, x="mes", y="Cantidad", color="sentimiento", facet_col="_marca_label",
         facet_col_wrap=1,
         category_orders={"sentimiento": SENTIMENT_ORDER},
         color_discrete_map=SENTIMENT_COLORS,
         title="Sentimiento por marca en el tiempo", markers=True,
-        labels={"mes": "Mes", "sentimiento": "Sentimiento", "marca": "Marca"},
+        labels={"mes": "Mes", "sentimiento": "Sentimiento", "_marca_label": "Marca"},
     )
     fig.update_yaxes(matches=None, showticklabels=True)
     fig.update_layout(height=max(350, n_brands * 200))

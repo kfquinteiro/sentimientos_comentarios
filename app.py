@@ -311,18 +311,32 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
         "comentarios. Las ramas más gruesas y los textos más grandes "
         "indican continuaciones más frecuentes."
     )
-    root_phrase = st.text_input(
+    _wt_marcas = ["Todas"] + sorted(df["Marca"].dropna().unique().tolist()) if "Marca" in df.columns else ["Todas"]
+    _wt_c1, _wt_c2 = st.columns([3, 1])
+    root_phrase = _wt_c1.text_input(
         "Palabra o frase", key="wordtree_root_{}".format(key_prefix)
     )
+    _wt_marca = _wt_c2.selectbox("Marca", _wt_marcas, key="wt_marca_{}".format(key_prefix))
+
     if root_phrase.strip():
-        tree_data = build_word_tree_data(active_path, mtime, root_phrase, charts.WORD_TREE_VERSION)
-        if tree_data is None:
-            st.caption("No se encontraron comentarios con esa palabra o frase.")
+        wt_df = df if _wt_marca == "Todas" else df[df["Marca"] == _wt_marca]
+        wt_comments = wt_df["Comentario"].dropna()
+        if wt_comments.empty:
+            st.caption("No hay comentarios para esta marca.")
         else:
-            components.html(
-                charts.word_tree_html(tree_data, width=1400),
-                height=charts.word_tree_height(tree_data),
-            )
+            wt_tagged = charts.tag_texts_for_wordtree(wt_comments.tolist())
+            wt_texts = wt_comments.tolist()
+            wt_likes = wt_df.loc[wt_comments.index, "Likes"].fillna(0).tolist() if "Likes" in wt_df.columns else None
+            wt_sents = wt_df.loc[wt_comments.index, "Sentimiento"].tolist() if "Sentimiento" in wt_df.columns else None
+            tree_data = charts.build_word_tree(wt_tagged, root_phrase,
+                                               full_texts=wt_texts, likes=wt_likes, sentiments=wt_sents)
+            if tree_data is None:
+                st.caption("No se encontraron comentarios con esa palabra o frase.")
+            else:
+                components.html(
+                    charts.word_tree_html(tree_data, width=1400),
+                    height=charts.word_tree_height(tree_data),
+                )
 
     st.subheader("Comentarios más interactuados")
     if df["Likes"].notna().any():
