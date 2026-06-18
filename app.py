@@ -1449,8 +1449,19 @@ uma dimensão com a outra.
             rename_ip = {v: k for k, v in ipds_mapping.items() if v != k}
             posts_mapped = ipds_raw.rename(columns=rename_ip)
 
-            n_brands = posts_mapped["marca"].nunique()
-            st.caption("{} posts · {} marcas detectadas".format(len(posts_mapped), n_brands))
+            all_networks = sorted(posts_mapped["red"].dropna().unique().tolist())
+            sel_networks = st.multiselect(
+                "Redes a incluir", all_networks, default=all_networks,
+                key="ipds_networks",
+            )
+            if sel_networks:
+                posts_filtered = posts_mapped[posts_mapped["red"].isin(sel_networks)]
+            else:
+                posts_filtered = posts_mapped
+
+            n_brands = posts_filtered["marca"].nunique()
+            st.caption("{} posts · {} marcas · {} redes".format(
+                len(posts_filtered), n_brands, len(sel_networks or all_networks)))
 
             if n_brands < 2:
                 st.warning("El IPD-S compara marcas entre sí. Se necesitan al menos 2 marcas.")
@@ -1460,7 +1471,7 @@ uma dimensão com a outra.
 
                 if st.session_state.get("ipds_ready"):
                     try:
-                        ipds_result = ipds.calculate(posts_mapped)
+                        ipds_result = ipds.calculate(posts_filtered)
 
                         st.plotly_chart(ipds.thermometer_fig(ipds_result),
                                         use_container_width=True)
