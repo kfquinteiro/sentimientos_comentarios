@@ -417,65 +417,6 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     else:
         st.caption("No hay fechas de publicación disponibles.")
 
-    # ── Clasificación manual de sentimiento ──────────────────────────────
-    st.subheader("Clasificación manual de sentimiento")
-    st.caption("Corrige el sentimiento de comentarios individuales. "
-               "Solo la columna Sentimiento es editable.")
-
-    _ef1, _ef2, _ef3 = st.columns(3)
-    _search_text = _ef1.text_input(
-        "Buscar en comentario", key="{}_edit_search".format(key_prefix),
-        placeholder="Filtrar por texto...",
-    )
-    _redes_edit = ["Todas"] + sorted(df["Red"].dropna().unique().tolist()) if "Red" in df.columns else ["Todas"]
-    _sent_edit = ["Todos", "Positivo", "Neutral", "Negativo"]
-    _sel_red_e = _ef2.selectbox("Red", _redes_edit, key="{}_edit_red".format(key_prefix))
-    _sel_sent_e = _ef3.selectbox("Sentimiento", _sent_edit, key="{}_edit_sent".format(key_prefix))
-
-    edit_df = df.copy()
-    if _search_text.strip():
-        edit_df = edit_df[edit_df["Comentario"].str.lower().str.contains(
-            _search_text.strip().lower(), na=False)]
-    if _sel_red_e != "Todas" and "Red" in edit_df.columns:
-        edit_df = edit_df[edit_df["Red"] == _sel_red_e]
-    if _sel_sent_e != "Todos" and "Sentimiento" in edit_df.columns:
-        edit_df = edit_df[edit_df["Sentimiento"] == _sel_sent_e]
-
-    _page_size = 50
-    _total_rows = len(edit_df)
-    _total_pages = max(1, -(-_total_rows // _page_size))
-    _pc1, _pc2 = st.columns([1, 3])
-    _page = _pc1.number_input(
-        "Página", 1, _total_pages, 1, key="{}_edit_page".format(key_prefix))
-    _pc2.caption("{} comentarios filtrados · {} páginas".format(_total_rows, _total_pages))
-    _start = (_page - 1) * _page_size
-    _page_df = edit_df.iloc[_start:_start + _page_size]
-
-    _show_cols = [c for c in ["Red", "Marca", "Autor", "Comentario", "Likes", "Sentimiento"]
-                  if c in _page_df.columns]
-    _disabled = [c for c in _show_cols if c != "Sentimiento"]
-
-    _edited = st.data_editor(
-        _page_df[_show_cols],
-        column_config={
-            "Sentimiento": st.column_config.SelectboxColumn(
-                "Sentimiento",
-                options=["Positivo", "Neutral", "Negativo"],
-                required=True,
-            ),
-        },
-        disabled=_disabled,
-        hide_index=True,
-        use_container_width=True,
-        key="{}_editor".format(key_prefix),
-    )
-
-    if st.button("Guardar cambios", type="primary", key="{}_save_edit".format(key_prefix)):
-        df.loc[_edited.index, "Sentimiento"] = _edited["Sentimiento"]
-        df.to_excel(active_path, sheet_name="Comentarios", index=False)
-        st.success("Cambios guardados — {} comentarios actualizados.".format(len(_edited)))
-        st.rerun()
-
     if show_brand_comparison and "Marca" in df.columns:
         marcas = sorted(df["Marca"].dropna().unique().tolist())
         if len(marcas) > 1:
@@ -660,8 +601,8 @@ def format_duration(seconds):
     return "{}s".format(s)
 
 
-tab_export, tab_runs, tab_analysis, tab_ipds = st.tabs(
-    ["Nueva exportación", "Ejecuciones", "Análisis", "IPD-S"]
+tab_export, tab_runs, tab_analysis, tab_clasif, tab_ipds = st.tabs(
+    ["Nueva exportación", "Ejecuciones", "Análisis", "Clasificación", "IPD-S"]
 )
 
 _COL_DETECT = {
@@ -1244,6 +1185,142 @@ def _ipds_detect(field, cols):
         if c.strip().lower() in _IPDS_COL_DETECT.get(field, set()):
             return c
     return None
+
+
+_SENT_DISPLAY = {"Positivo": "+ Positivo", "Neutral": "○ Neutral", "Negativo": "− Negativo"}
+_SENT_FROM_DISPLAY = {v: k for k, v in _SENT_DISPLAY.items()}
+_SENT_OPTIONS_DISPLAY = ["+ Positivo", "○ Neutral", "− Negativo"]
+
+
+def _resolve_clasif_path():
+    """Retorna o path do arquivo ativo para edição, ou None."""
+    source = st.radio(
+        "Fuente de datos", ["Ejecución exportada", "Base subida"],
+        horizontal=True, key="clasif_source",
+    )
+    if source == "Ejecución exportada":
+        run_opts = _runs_with_exports()
+        if not run_opts:
+            st.info("No hay ejecuciones con análisis.")
+            return None
+        sel = st.selectbox("Ejecución", run_opts, key="clasif_run")
+        run_dir = os.path.join(RUNS_DIR, sel)
+        analysis_state = ra.load_analysis_state(run_dir)
+        if not analysis_state or analysis_state.get("stage") != "completado":
+            st.info("Esta ejecución no tiene análisis completado. "
+                    "Genera el análisis en la pestaña Análisis primero.")
+            return None
+        report_path = os.path.join(run_dir, analysis_state["report_file"])
+        corrected = os.path.join(run_dir, CORRECTED_FILENAME)
+        return corrected if os.path.exists(corrected) else report_path
+    else:
+        base_path = os.path.join(UPLOADS_DIR, UPLOADED_BASE_FILENAME)
+        if not os.path.exists(base_path):
+            st.info("No hay base subida. Sube una en la pestaña Análisis.")
+            return None
+        return base_path
+
+
+with tab_clasif:
+    st.caption("Revisa y corrige la clasificación de sentimiento y tema de cada "
+               "comentario. Los cambios se guardan en el archivo XLSX que descargas.")
+
+    clasif_path = _resolve_clasif_path()
+    if clasif_path is not None:
+        clasif_df = pd.read_excel(clasif_path, sheet_name="Comentarios")
+        clasif_df.columns = [str(c).strip() for c in clasif_df.columns]
+
+        dict_opts = tc.available_dictionaries()
+        dict_labels = [n for _, n in dict_opts]
+        dict_keys = [k for k, _ in dict_opts]
+        sel_dict_label = st.selectbox(
+            "Diccionario de temas", dict_labels, key="clasif_dict")
+        sel_dict_key = dict_keys[dict_labels.index(sel_dict_label)]
+
+        if "Tema" not in clasif_df.columns:
+            clasif_df["Tema"] = tc.classify_series(
+                clasif_df["Comentario"].fillna(""), sel_dict_key)
+
+        topic_list = sorted(tc.DICTIONARIES[sel_dict_key]["topics"].keys()) + ["Otros"]
+
+        clasif_df["_sent_display"] = clasif_df["Sentimiento"].map(
+            _SENT_DISPLAY).fillna("○ Neutral")
+
+        # ── Filtros ──
+        fc1, fc2, fc3, fc4 = st.columns(4)
+        c_search = fc1.text_input("Buscar", key="clasif_search",
+                                   placeholder="Texto...")
+        c_redes = ["Todas"] + sorted(clasif_df["Red"].dropna().unique().tolist()) if "Red" in clasif_df.columns else ["Todas"]
+        c_red = fc2.selectbox("Red", c_redes, key="clasif_red_f")
+        c_sent = fc3.selectbox("Sentimiento", ["Todos"] + _SENT_OPTIONS_DISPLAY,
+                               key="clasif_sent_f")
+        c_tema = fc4.selectbox("Tema", ["Todos"] + topic_list, key="clasif_tema_f")
+
+        filtered = clasif_df.copy()
+        if c_search.strip():
+            filtered = filtered[filtered["Comentario"].str.lower().str.contains(
+                c_search.strip().lower(), na=False)]
+        if c_red != "Todas" and "Red" in filtered.columns:
+            filtered = filtered[filtered["Red"] == c_red]
+        if c_sent != "Todos":
+            real_sent = _SENT_FROM_DISPLAY.get(c_sent, c_sent)
+            filtered = filtered[filtered["Sentimiento"] == real_sent]
+        if c_tema != "Todos":
+            filtered = filtered[filtered["Tema"] == c_tema]
+
+        # ── Paginação ──
+        pg1, pg2, pg3 = st.columns([1, 1, 2])
+        page_size = pg1.selectbox("Por página", [25, 50, 100], index=1,
+                                   key="clasif_pagesize")
+        total_pages = max(1, -(-len(filtered) // page_size))
+        page_num = pg2.number_input("Página", 1, total_pages, 1,
+                                     key="clasif_page")
+        pg3.caption("{} comentarios · {} páginas".format(len(filtered), total_pages))
+
+        start = (page_num - 1) * page_size
+        page_slice = filtered.iloc[start:start + page_size].copy()
+
+        show = [c for c in ["Red", "Marca", "Autor", "Comentario", "Likes",
+                            "_sent_display", "Tema"]
+                if c in page_slice.columns]
+        locked = [c for c in show if c not in ("_sent_display", "Tema")]
+
+        edited = st.data_editor(
+            page_slice[show],
+            column_config={
+                "_sent_display": st.column_config.SelectboxColumn(
+                    "Sentimiento",
+                    options=_SENT_OPTIONS_DISPLAY,
+                    required=True,
+                ),
+                "Tema": st.column_config.SelectboxColumn(
+                    "Tema",
+                    options=topic_list,
+                    required=True,
+                ),
+            },
+            disabled=locked,
+            hide_index=True,
+            use_container_width=True,
+            key="clasif_editor",
+        )
+
+        if st.button("Guardar cambios", type="primary", key="clasif_save"):
+            edited_sent = edited["_sent_display"].map(_SENT_FROM_DISPLAY)
+            clasif_df.loc[edited.index, "Sentimiento"] = edited_sent.values
+            clasif_df.loc[edited.index, "Tema"] = edited["Tema"].values
+            save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
+            clasif_df[save_cols].to_excel(
+                clasif_path, sheet_name="Comentarios", index=False)
+            st.success("Cambios guardados.")
+            st.rerun()
+
+        st.download_button(
+            "Descargar base corregida (XLSX)",
+            data=open(clasif_path, "rb").read(),
+            file_name="base_clasificada.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
 
 with tab_ipds:
