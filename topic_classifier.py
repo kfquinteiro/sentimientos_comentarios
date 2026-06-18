@@ -13,7 +13,7 @@ import re
 
 DICTIONARIES = {
     "politica_br": {
-        "name": "Política brasileña",
+        "name": {"pt": "Política brasileira", "es": "Política brasileña"},
         "topics": {
             "Segurança pública": [
                 # PT-BR
@@ -185,7 +185,7 @@ DICTIONARIES = {
         },
     },
     "servicios_financieros": {
-        "name": "Servicios financieros",
+        "name": {"pt": "Serviços financeiros", "es": "Servicios financieros"},
         "topics": {
             "Crédito": [
                 # PT-BR
@@ -387,17 +387,30 @@ DICTIONARIES = {
 _WORD_BOUNDARY = re.compile(r"\b{}\b")
 
 
-def available_dictionaries():
+_OTROS = {"pt": "Outros", "es": "Otros"}
+
+
+def available_dictionaries(lang="pt"):
     """Retorna lista de (key, name) dos dicionários disponíveis."""
-    return [(k, v["name"]) for k, v in DICTIONARIES.items()]
+    result = []
+    for k, v in DICTIONARIES.items():
+        name = v["name"]
+        if isinstance(name, dict):
+            name = name.get(lang, name.get("pt", str(name)))
+        result.append((k, name))
+    return result
 
 
-def classify_text(text, dictionary_key):
+def otros_label(lang="pt"):
+    return _OTROS.get(lang, "Outros")
+
+
+def classify_text(text, dictionary_key, lang="pt"):
     """Clasifica un texto en exactamente un tema del diccionario indicado.
 
     Retorna el nombre del tema con más coincidencias de keywords.
     En caso de empate, gana el tema con la keyword más larga encontrada
-    (más específica). Si no hay coincidencia, retorna 'Otros'.
+    (más específica). Si no hay coincidencia, retorna 'Outros'/'Otros'.
     """
     text_lower = str(text).lower()
     topics = DICTIONARIES[dictionary_key]["topics"]
@@ -419,9 +432,9 @@ def classify_text(text, dictionary_key):
             best_max_len = max_len
             best_topic = topic
 
-    return best_topic or "Otros"
+    return best_topic or otros_label(lang)
 
 
-def classify_series(texts, dictionary_key):
+def classify_series(texts, dictionary_key, lang="pt"):
     """Clasifica una lista/Series de textos. Retorna lista de temas."""
-    return [classify_text(t, dictionary_key) for t in texts]
+    return [classify_text(t, dictionary_key, lang=lang) for t in texts]

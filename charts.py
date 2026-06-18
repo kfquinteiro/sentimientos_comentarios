@@ -254,7 +254,7 @@ def bubble_matrix_tema_sentimiento(df, tema_col="tema"):
     """Bubble matrix: Tema × Sentimiento. Tamaño = cantidad de comentarios."""
     if tema_col not in df.columns or "sentimiento" not in df.columns:
         return None
-    filtered = df[df[tema_col] != "Otros"]
+    filtered = df[~df[tema_col].isin(["Otros", "Outros"])]
     agg = (filtered.groupby([tema_col, "sentimiento"]).size()
            .reset_index(name="Cantidad"))
     if agg.empty:
@@ -275,7 +275,7 @@ def bubble_prioridad(df, tema_col="tema"):
     """Bubble de prioridad: X=volumen, Y=%negativo, tamaño=likes, color=tema."""
     if tema_col not in df.columns or "sentimiento" not in df.columns:
         return None
-    filtered = df[df[tema_col] != "Otros"]
+    filtered = df[~df[tema_col].isin(["Otros", "Outros"])]
     grouped = filtered.groupby(tema_col).agg(
         Comentarios=("sentimiento", "size"),
         Negativos=("sentimiento", lambda s: (s == "Negativo").sum()),
@@ -302,7 +302,7 @@ def heatmap_tema_red(df, tema_col="tema"):
     """Heatmap: Tema × Red. Color = cantidad de comentarios."""
     if tema_col not in df.columns or "red" not in df.columns:
         return None
-    filtered = df[df[tema_col] != "Otros"]
+    filtered = df[~df[tema_col].isin(["Otros", "Outros"])]
     agg = (filtered.groupby([tema_col, "red"]).size()
            .reset_index(name="Cantidad"))
     if agg.empty:

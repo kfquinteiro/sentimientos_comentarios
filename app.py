@@ -185,7 +185,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
 
     # ── Clasificación por tema ────────────────────────────────────────────
     st.subheader(_t("topic_analysis"))
-    dict_options = tc.available_dictionaries()
+    dict_options = tc.available_dictionaries(lang=_lang())
     dict_labels = [name for _, name in dict_options]
     dict_keys = [k for k, _ in dict_options]
     selected_dict_label = st.selectbox(
@@ -196,15 +196,15 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     st.session_state["selected_dict_key"] = selected_dict_key
 
     chart_df["tema"] = tc.classify_series(
-        chart_df["comentario"].fillna(""), selected_dict_key)
+        chart_df["comentario"].fillna(""), selected_dict_key, lang=_lang())
 
-    total_classified = (chart_df["tema"] != "Otros").sum()
-    total_otros = (chart_df["tema"] == "Otros").sum()
+    total_classified = (chart_df["tema"] != tc.otros_label(_lang())).sum()
+    total_otros = (chart_df["tema"] == tc.otros_label(_lang())).sum()
     pct_classified = round(total_classified / len(chart_df) * 100) if len(chart_df) else 0
     mc1, mc2, mc3 = st.columns(3)
     mc1.metric(_t("classified"), "{} ({}%)".format(total_classified, pct_classified))
     mc2.metric(_t("unclassified"), total_otros)
-    mc3.metric(_t("topics_detected"), chart_df[chart_df["tema"] != "Otros"]["tema"].nunique())
+    mc3.metric(_t("topics_detected"), chart_df[chart_df["tema"] != tc.otros_label(_lang())]["tema"].nunique())
 
     _viz_opts = [_t("viz_topics_sentiment"), _t("viz_priority"), _t("viz_topics_network")]
     tema_chart = st.radio(
@@ -222,7 +222,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
 
     if total_otros > 0:
         with st.expander(_t("explore_otros").format(total_otros)):
-            otros_df = chart_df[chart_df["tema"] == "Otros"]
+            otros_df = chart_df[chart_df["tema"] == tc.otros_label(_lang())]
             otros_words = charts.top_words(otros_df["comentario"].dropna(), n=30)
             if otros_words:
                 st.caption(_t("frequent_words_otros"))
@@ -900,7 +900,7 @@ with tab_runs:
                 return
 
             zip_bytes = make_zip_bytes_cached(run_dir, done_count)
-            dl_col, analyze_col = st.columns(2)
+            dl_col, _, analyze_col = st.columns([2, 3, 2])
             dl_col.download_button(
                 _t("download_zip"),
                 data=zip_bytes,
@@ -909,7 +909,7 @@ with tab_runs:
             )
             with analyze_col:
                 if st.button(_t("analyze_now"), key="go_analyze_{}".format(run_name),
-                             type="primary"):
+                             type="primary", use_container_width=True):
                     st.session_state["analyze_run"] = run_name
 
             if st.session_state.get("analyze_run") == run_name:
@@ -1268,9 +1268,9 @@ with tab_clasif:
 
         if "Tema" not in clasif_df.columns:
             clasif_df["Tema"] = tc.classify_series(
-                clasif_df["Comentario"].fillna(""), sel_dict_key)
+                clasif_df["Comentario"].fillna(""), sel_dict_key, lang=_lang())
 
-        topic_list = sorted(tc.DICTIONARIES[sel_dict_key]["topics"].keys()) + ["Otros"]
+        topic_list = sorted(tc.DICTIONARIES[sel_dict_key]["topics"].keys()) + [tc.otros_label(_lang())]
 
         clasif_df["_sent_display"] = clasif_df["Sentimiento"].map(
             _SENT_DISPLAY).fillna("○ Neutral")
