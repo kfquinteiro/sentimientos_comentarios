@@ -736,7 +736,9 @@ with tab_runs:
                     st.session_state.pop("active_run", None)
                     st.rerun()
 
-        @st.fragment(run_every="5s")
+        _status_refresh = "5s" if is_running(run_dir) else None
+
+        @st.fragment(run_every=_status_refresh)
         def render_run_status(run_dir, run_name):
             state = orc.load_state(run_dir)
             items = state["items"]
@@ -858,7 +860,9 @@ with tab_runs:
                         orc.save_state(run_dir, _state)
                         st.success("Marcas guardadas.")
 
-        @st.fragment(run_every="3s")
+        _dl_refresh = "3s" if is_running(run_dir) else None
+
+        @st.fragment(run_every=_dl_refresh)
         def render_run_downloads(run_dir, run_name):
             state = orc.load_state(run_dir)
             done_count = sum(1 for item in state["items"] if item["status"] == "done")
@@ -915,7 +919,9 @@ with tab_analysis:
                                     key="analysis_run_select")
             run_dir = os.path.join(RUNS_DIR, selected)
 
-            @st.fragment(run_every="3s")
+            _analysis_refresh = "3s" if ra.is_analysis_running(run_dir) else None
+
+            @st.fragment(run_every=_analysis_refresh)
             def render_analysis(run_dir, run_name):
                 state = orc.load_state(run_dir)
                 done_count = sum(1 for item in state["items"] if item["status"] == "done")
