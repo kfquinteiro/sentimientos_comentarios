@@ -135,6 +135,24 @@ DICTIONARIES = {
                 "discapacitado", "anciano", "indígena", "refugiado",
                 "intolerancia religiosa",
             ],
+            "Valores": [
+                # PT-BR
+                "família", "familiar", "valores", "moral", "costumes",
+                "deus", "jesus", "abençoe", "abençoado", "abençoada", "bênção",
+                "fé", "igreja", "evangélico", "cristão", "religião", "oração",
+                "bíblia", "tradição", "conservador",
+                # ES
+                "familia", "familiar", "valores", "moral", "costumbres",
+                "dios", "jesús", "bendiga", "bendecido", "bendición",
+                "fe", "iglesia", "evangélico", "cristiano", "religión", "oración",
+                "biblia", "tradición", "conservador",
+            ],
+            "Clã Bolsonaro": [
+                "bolsonaro", "jair bolsonaro", "flávio bolsonaro",
+                "carlos bolsonaro", "renan bolsonaro", "eduardo bolsonaro",
+                "família bolsonaro", "clan bolsonaro", "bolsonarismo",
+                "bolsonarista", "mito",
+            ],
         },
     },
     "servicios_financieros": {
