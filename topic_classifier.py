@@ -304,6 +304,17 @@ DICTIONARIES = {
                 "error", "inestabilidad", "fuera de servicio", "lento",
                 "actualización", "login", "contraseña",
             ],
+            "Acciones": [
+                # PT-BR
+                "campanha", "ação promocional", "ativação", "sorteio",
+                "dinâmica", "concurso", "evento", "parceria", "collab",
+                "lançamento", "black friday", "hot sale",
+                # ES
+                "campaña", "acción promocional", "activación", "sorteo",
+                "dinámica", "concurso", "evento", "alianza", "collab",
+                "lanzamiento", "julio regalado", "buen fin", "hot sale",
+                "black friday", "cyber monday",
+            ],
             "Educação financeira": [
                 # PT-BR
                 "educação financeira", "finanças pessoais", "orçamento",
