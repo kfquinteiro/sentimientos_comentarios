@@ -1287,15 +1287,16 @@ with tab_clasif:
         if c_link != "Todos" and "Link del post" in filtered.columns:
             filtered = filtered[filtered["Link del post"] == c_link]
 
-        # ── Paginação ──
+        # ── Paginação (acima da tabela) ──
         if "clasif_page_num" not in st.session_state:
             st.session_state["clasif_page_num"] = 1
-        page_size = st.selectbox("Por página", [25, 50, 100], index=1,
-                                  key="clasif_pagesize")
+        if "clasif_ps" not in st.session_state:
+            st.session_state["clasif_ps"] = 50
+        page_size = st.session_state["clasif_ps"]
         total_pages = max(1, -(-len(filtered) // page_size))
         if st.session_state["clasif_page_num"] > total_pages:
             st.session_state["clasif_page_num"] = 1
-        _pg_prev, _pg_info, _pg_next = st.columns([1, 4, 1])
+        _pg_prev, _pg_info, _pg_next = st.columns([1, 6, 1])
         if _pg_prev.button("←", disabled=st.session_state["clasif_page_num"] <= 1,
                            key="clasif_prev"):
             st.session_state["clasif_page_num"] -= 1
@@ -1351,6 +1352,14 @@ with tab_clasif:
                     clasif_path, sheet_name="Comentarios", index=False)
                 st.success("Cambios guardados.")
                 st.rerun()
+
+        _ps_sel = st.pills("Comentarios por página", [25, 50, 100],
+                           default=st.session_state.get("clasif_ps", 50),
+                           key="clasif_ps_pills")
+        if _ps_sel and _ps_sel != st.session_state.get("clasif_ps"):
+            st.session_state["clasif_ps"] = _ps_sel
+            st.session_state["clasif_page_num"] = 1
+            st.rerun()
 
         st.download_button(
             "Descargar base corregida (XLSX)",
