@@ -20,6 +20,7 @@ import report as rep
 import run_analysis as ra
 import spreadsheet_reader as sr
 import topic_classifier as tc
+import ipds
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_DIR = os.path.join(PROJECT_DIR, "input")
@@ -76,7 +77,7 @@ def display_status(item):
 ANALYSIS_STAGE_LABELS = {
     "consolidando": "Consolidando comentarios exportados...",
     "cargando_modelo": "Cargando modelo de análisis de sentimiento...",
-    "analizando_sentimiento": "Analizando sentimiento...",
+    "analizando_sentimiento": "Pausa para el café... Seguiremos analizando tus datos mientras tanto.",
     "generando_reporte": "Generando reporte...",
     "completado": "Completado",
     "error": "Error",
@@ -600,8 +601,8 @@ def format_duration(seconds):
     return "{}s".format(s)
 
 
-tab_export, tab_runs, tab_analysis = st.tabs(
-    ["Nueva exportación", "Ejecuciones", "Análisis"]
+tab_export, tab_runs, tab_analysis, tab_ipds = st.tabs(
+    ["Nueva exportación", "Ejecuciones", "Análisis", "IPD-S"]
 )
 
 _COL_DETECT = {
@@ -1168,3 +1169,114 @@ with tab_analysis:
                 show_brand_comparison=True)
         else:
             st.info("Sube un archivo para ver el análisis.")
+
+
+_IPDS_COL_DETECT = {
+    "interacciones": {"interactions", "interacciones", "interações", "total interactions",
+                      "engagement", "engajamento"},
+    "red": {"network", "red", "red social", "plataforma", "platform"},
+    "marca": {"profile", "perfil", "marca", "cuenta", "brand", "account"},
+    "fecha": {"date", "fecha", "fecha de publicación", "published"},
+}
+
+
+def _ipds_detect(field, cols):
+    for c in cols:
+        if c.strip().lower() in _IPDS_COL_DETECT.get(field, set()):
+            return c
+    return None
+
+
+with tab_ipds:
+    st.caption(
+        "Sube la base de posts (Fanpage Karma u otra) para calcular el "
+        "Indicador de Presencia Digital Social por marca. "
+        "Escala de 0 a 1, metodología IDH (media geométrica)."
+    )
+
+    if "ipds_uploader_key" not in st.session_state:
+        st.session_state["ipds_uploader_key"] = 0
+
+    ipds_file = st.file_uploader(
+        "Base de posts (.xlsx, .csv)", type=["xlsx", "csv"],
+        key="ipds_upload_{}".format(st.session_state["ipds_uploader_key"]),
+    )
+
+    if ipds_file is not None:
+        try:
+            if ipds_file.name.lower().endswith(".csv"):
+                ipds_raw = pd.read_csv(ipds_file)
+            else:
+                ipds_raw = sr.read_raw_file(
+                    os.path.join(INPUT_DIR, ipds_file.name))
+                with open(os.path.join(INPUT_DIR, ipds_file.name), "wb") as f:
+                    ipds_file.seek(0)
+                    f.write(ipds_file.getbuffer())
+                ipds_raw = sr.read_raw_file(os.path.join(INPUT_DIR, ipds_file.name))
+            ipds_raw = ipds_raw.dropna(axis=1, how="all")
+            ipds_raw.columns = [str(c).strip() for c in ipds_raw.columns]
+            ip_cols = ipds_raw.columns.tolist()
+        except Exception as e:
+            st.error("Error al leer el archivo: {}".format(e))
+            ipds_raw = None
+            ip_cols = []
+
+        if ipds_raw is not None and ip_cols:
+            st.caption("Mapea las columnas de tu archivo:")
+            _ina = "(no disponible)"
+            _iopt = [_ina] + ip_cols
+
+            ic1, ic2 = st.columns(2)
+            ip_marca = ic1.selectbox(
+                "Perfil / Marca (requerido)", ip_cols,
+                index=ip_cols.index(_ipds_detect("marca", ip_cols)) if _ipds_detect("marca", ip_cols) else 0,
+                key="ipds_marca",
+            )
+            ip_red = ic2.selectbox(
+                "Red social (requerido)", ip_cols,
+                index=ip_cols.index(_ipds_detect("red", ip_cols)) if _ipds_detect("red", ip_cols) else 0,
+                key="ipds_red",
+            )
+            ip_inter = ic1.selectbox(
+                "Interacciones (requerido)", ip_cols,
+                index=ip_cols.index(_ipds_detect("interacciones", ip_cols)) if _ipds_detect("interacciones", ip_cols) else 0,
+                key="ipds_inter",
+            )
+            ip_fecha = ic2.selectbox(
+                "Fecha de publicación", _iopt,
+                index=_iopt.index(_ipds_detect("fecha", ip_cols) or _ina),
+                key="ipds_fecha",
+            )
+
+            ipds_mapping = {"marca": ip_marca, "red": ip_red, "interacciones": ip_inter}
+            if ip_fecha != _ina:
+                ipds_mapping["fecha"] = ip_fecha
+
+            rename_ip = {v: k for k, v in ipds_mapping.items() if v != k}
+            posts_mapped = ipds_raw.rename(columns=rename_ip)
+
+            n_brands = posts_mapped["marca"].nunique()
+            st.caption("{} posts · {} marcas detectadas".format(len(posts_mapped), n_brands))
+
+            if n_brands < 2:
+                st.warning("El IPD-S compara marcas entre sí. Se necesitan al menos 2 marcas.")
+            else:
+                if st.button("Calcular IPD-S", type="primary", key="calc_ipds"):
+                    st.session_state["ipds_ready"] = True
+
+                if st.session_state.get("ipds_ready"):
+                    try:
+                        ipds_result = ipds.calculate(posts_mapped)
+
+                        st.plotly_chart(ipds.thermometer_fig(ipds_result),
+                                        use_container_width=True)
+
+                        dim_fig = ipds.dimensions_bar_fig(ipds_result)
+                        if dim_fig is not None:
+                            st.plotly_chart(dim_fig, use_container_width=True)
+
+                        st.subheader("Detalle por marca")
+                        st.dataframe(ipds_result, hide_index=True,
+                                     use_container_width=True)
+                    except Exception as e:
+                        st.error("Error al calcular el IPD-S: {}".format(e))
