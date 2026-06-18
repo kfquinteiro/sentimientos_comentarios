@@ -11,8 +11,6 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
-from PIL import Image
-
 import charts
 import consolidate as cons
 import orchestrator as orc
@@ -21,6 +19,7 @@ import run_analysis as ra
 import spreadsheet_reader as sr
 import topic_classifier as tc
 import ipds
+from i18n import t
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_DIR = os.path.join(PROJECT_DIR, "input")
@@ -74,14 +73,19 @@ def display_status(item):
         return "Post eliminado o no disponible"
     return STATUS_LABELS["error"]
 
-ANALYSIS_STAGE_LABELS = {
-    "consolidando": "Consolidando comentarios exportados...",
-    "cargando_modelo": "Cargando modelo de análisis de sentimiento...",
-    "analizando_sentimiento": "Pausa para el café... Seguiremos analizando tus datos mientras tanto.",
-    "generando_reporte": "Generando reporte...",
-    "completado": "Completado",
-    "error": "Error",
+_STAGE_KEYS = {
+    "consolidando": "stage_consolidating",
+    "cargando_modelo": "stage_loading_model",
+    "analizando_sentimiento": "stage_analyzing",
+    "generando_reporte": "stage_generating_report",
+    "completado": "stage_completed",
+    "error": "stage_error",
 }
+
+
+def _stage_label(stage):
+    key = _STAGE_KEYS.get(stage, stage)
+    return _t(key)
 
 REPORT_COLUMN_LABELS = rep.COLUMN_LABELS
 CORRECTED_FILENAME = "analisis_sentimiento_corregido.xlsx"
@@ -470,13 +474,18 @@ os.makedirs(INPUT_DIR, exist_ok=True)
 os.makedirs(RUNS_DIR, exist_ok=True)
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-LOGO_PATH = os.path.join(PROJECT_DIR, "assets", "wiper-isologo.png")
-
 st.set_page_config(
-    page_title="Wiper · Análisis de redes sociales",
+    page_title="Análise de Redes Sociais",
     layout="wide",
-    page_icon=LOGO_PATH if os.path.exists(LOGO_PATH) else None,
 )
+
+
+def _lang():
+    return st.session_state.get("lang", "pt")
+
+
+def _t(key):
+    return t(key, _lang())
 
 
 def _check_password():
@@ -487,17 +496,15 @@ def _check_password():
         return True
     col = st.columns([1, 1, 1])[1]
     with col:
-        if os.path.exists(LOGO_PATH):
-            st.image(LOGO_PATH, width=120)
         with st.form("login"):
-            st.markdown("#### Acceso restringido")
-            entered = st.text_input("Contraseña", type="password")
-            if st.form_submit_button("Entrar", use_container_width=True):
+            st.markdown("#### " + _t("login_title"))
+            entered = st.text_input(_t("login_password"), type="password")
+            if st.form_submit_button(_t("login_enter"), use_container_width=True):
                 if entered == pwd:
                     st.session_state["authenticated"] = True
                     st.rerun()
                 else:
-                    st.error("Contraseña incorrecta.")
+                    st.error(_t("login_error"))
     return False
 
 
@@ -547,19 +554,17 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-def _load_logo(path, pad_y=8):
-    img = Image.open(path).convert("RGBA")
-    padded = Image.new("RGBA", (img.width, img.height + pad_y * 2), (0, 0, 0, 0))
-    padded.paste(img, (0, pad_y), img)
-    return padded
-
-
-col_logo, col_title = st.columns([1, 6])
-if os.path.exists(LOGO_PATH):
-    col_logo.image(_load_logo(LOGO_PATH), width=80)
-with col_title:
-    st.title("Análisis de redes sociales")
-    st.caption("Exportación de comentarios y análisis de sentimiento · Wiper Agency")
+_col_title, _col_lang = st.columns([6, 1])
+with _col_title:
+    st.title(_t("page_title"))
+    st.caption(_t("page_subtitle"))
+with _col_lang:
+    _lang_sel = st.radio("", ["🇧🇷", "🇪🇸"], horizontal=True,
+                         index=0 if _lang() == "pt" else 1, key="lang_toggle",
+                         label_visibility="collapsed")
+    if (_lang_sel == "🇧🇷" and _lang() != "pt") or (_lang_sel == "🇪🇸" and _lang() != "es"):
+        st.session_state["lang"] = "pt" if _lang_sel == "🇧🇷" else "es"
+        st.rerun()
 
 
 def list_runs():
@@ -629,7 +634,8 @@ def format_duration(seconds):
 
 
 tab_export, tab_runs, tab_analysis, tab_clasif, tab_ipds = st.tabs(
-    ["Nueva exportación", "Ejecuciones", "Análisis", "Clasificación", "IPD-S"]
+    [_t("tab_export"), _t("tab_runs"), _t("tab_analysis"),
+     _t("tab_classification"), _t("tab_ipds")]
 )
 
 _COL_DETECT = {
@@ -960,7 +966,7 @@ with tab_analysis:
 
                 if running:
                     stage = (analysis_state or {}).get("stage", "consolidando")
-                    st.caption(ANALYSIS_STAGE_LABELS.get(stage, stage))
+                    st.caption(_stage_label(stage))
                     if stage == "analizando_sentimiento" and analysis_state.get("total"):
                         processed = analysis_state.get("processed", 0)
                         total = analysis_state["total"]
