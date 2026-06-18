@@ -34,16 +34,23 @@ def _minmax(series):
 
 
 def calculate(posts_df, sentiment_df=None):
-    """Calcula o IPD-S por marca.
+    """Calcula o IPD-S por marca com normalização por plataforma.
+
+    Metodologia inspirada no IDH (PNUD):
+    1. Cada dimensão (Atividade, Engajamento) é calculada POR REDE,
+       normalizando dentro do grupo de marcas naquela rede. Isso evita
+       distorções por diferenças de comportamento entre plataformas.
+    2. O score de cada marca por dimensão é a média dos seus scores
+       nas redes em que está presente.
+    3. A dimensão Multicanal mede a diversificação (nº de redes / total).
+    4. O IPD-S final é a média geométrica das dimensões (como o IDH).
 
     Parameters
     ----------
     posts_df : DataFrame
-        Deve ter colunas: marca, red, fecha, interacciones.
-        Uma linha por post.
+        Deve ter colunas: marca, red, interacciones. Opcionais: fecha.
     sentiment_df : DataFrame, optional
         Deve ter colunas: marca, sentimiento.
-        Uma linha por comentário (resultado do análise de sentimiento).
 
     Returns
     -------
@@ -58,25 +65,48 @@ def calculate(posts_df, sentiment_df=None):
 
     df["interacciones"] = pd.to_numeric(df["interacciones"], errors="coerce").fillna(0)
 
-    total_networks = df["red"].nunique()
-
-    by_brand = df.groupby("marca").agg(
-        posts=("marca", "size"),
-        avg_interactions=("interacciones", "mean"),
-        networks=("red", "nunique"),
-    ).reset_index()
-
-    if "fecha" in df.columns:
+    has_date = "fecha" in df.columns
+    if has_date:
         df["_mes"] = pd.to_datetime(df["fecha"], errors="coerce").dt.to_period("M")
-        months_in_data = df["_mes"].nunique() or 1
-        posts_per_month = df.groupby("marca").size() / months_in_data
-        by_brand["posts_per_month"] = by_brand["marca"].map(posts_per_month).fillna(0)
-    else:
-        by_brand["posts_per_month"] = by_brand["posts"]
 
-    by_brand["d_atividade"] = _minmax(np.log1p(by_brand["posts_per_month"]))
-    by_brand["d_engajamento"] = _minmax(np.log1p(by_brand["avg_interactions"]))
-    by_brand["d_multicanal"] = (by_brand["networks"] / max(total_networks, 1)).clip(EPSILON, 1.0)
+    total_networks = df["red"].nunique()
+    all_brands = sorted(df["marca"].unique())
+
+    # ── Calcular dimensões POR REDE e depois agregar ──
+    brand_activity_scores = {b: [] for b in all_brands}
+    brand_engage_scores = {b: [] for b in all_brands}
+
+    for red, red_df in df.groupby("red"):
+        red_brands = red_df.groupby("marca").agg(
+            posts=("marca", "size"),
+            avg_inter=("interacciones", "mean"),
+        ).reset_index()
+
+        if has_date:
+            months = red_df["_mes"].nunique() or 1
+            red_brands["ppm"] = red_brands["posts"] / months
+        else:
+            red_brands["ppm"] = red_brands["posts"]
+
+        red_brands["act_norm"] = _minmax(np.log1p(red_brands["ppm"]))
+        red_brands["eng_norm"] = _minmax(np.log1p(red_brands["avg_inter"]))
+
+        for _, row in red_brands.iterrows():
+            brand_activity_scores[row["marca"]].append(row["act_norm"])
+            brand_engage_scores[row["marca"]].append(row["eng_norm"])
+
+    by_brand = pd.DataFrame({"marca": all_brands})
+    by_brand["d_atividade"] = by_brand["marca"].apply(
+        lambda b: np.mean(brand_activity_scores[b]) if brand_activity_scores[b] else EPSILON
+    ).clip(EPSILON, 1.0)
+    by_brand["d_engajamento"] = by_brand["marca"].apply(
+        lambda b: np.mean(brand_engage_scores[b]) if brand_engage_scores[b] else EPSILON
+    ).clip(EPSILON, 1.0)
+
+    networks_per_brand = df.groupby("marca")["red"].nunique()
+    by_brand["d_multicanal"] = by_brand["marca"].map(
+        networks_per_brand / max(total_networks, 1)
+    ).clip(EPSILON, 1.0)
 
     dimensions = ["d_atividade", "d_engajamento", "d_multicanal"]
 

@@ -1325,10 +1325,68 @@ with tab_clasif:
 
 with tab_ipds:
     st.caption(
-        "Sube la base de posts (Fanpage Karma u otra) para calcular el "
-        "Indicador de Presencia Digital Social por marca. "
-        "Escala de 0 a 1, metodología IDH (media geométrica)."
+        "Indicador de Presencia Digital Social — compara marcas "
+        "en una escala de 0 a 1 usando metodología IDH."
     )
+
+    with st.expander("Metodología del IPD-S"):
+        st.markdown("""
+**O que é o IPD-S?**
+
+O Indicador de Presença Digital Social (IPD-S) é um índice composto que
+avalia a eficácia da comunicação digital de marcas em redes sociais.
+Inspirado na metodologia do IDH (Índice de Desenvolvimento Humano) do
+PNUD, combina múltiplas dimensões em um único número de 0 a 1.
+
+**Dimensões**
+
+| Dimensão | O que mede | Como calcula |
+|---|---|---|
+| **Atividade** | Frequência de publicação | Posts/mês, normalizado por rede |
+| **Engajamento** | Ressonância do conteúdo | Interações/post, normalizado por rede |
+| **Multicanal** | Diversificação de plataformas | Nº de redes ativas / total de redes |
+| **Sentimento** | Saúde da percepção de marca | % de comentários positivos *(opcional)* |
+
+**Normalização por plataforma**
+
+Cada rede social tem comportamento distinto — o volume de interações
+no TikTok não é comparável ao do Facebook. Por isso, as dimensões de
+Atividade e Engajamento são calculadas **dentro de cada rede** primeiro
+(comparando marcas entre si naquela plataforma), e depois agregadas
+como média dos scores por rede.
+
+Usa-se escala logarítmica (`log(1 + x)`) antes da normalização min-max
+para suavizar distorções causadas por outliers, seguindo a prática do
+IDH para a dimensão de renda.
+
+**Fórmula**
+
+`IPD-S = (D₁ × D₂ × D₃ × ... × Dₙ) ^ (1/n)` — média geométrica
+
+A média geométrica (em vez de aritmética) penaliza desequilíbrios: uma
+marca com engajamento altíssimo mas atividade zero não consegue compensar
+uma dimensão com a outra.
+
+**Escala e faixas**
+
+| Faixa | Intervalo | Interpretação |
+|---|---|---|
+| Muy bajo | 0,00 – 0,20 | Presença digital frágil ou incipiente |
+| Bajo | 0,20 – 0,40 | Presença abaixo da média do grupo |
+| Medio | 0,40 – 0,60 | Presença na média, com espaço para evolução |
+| Alto | 0,60 – 0,80 | Presença sólida e consistente |
+| Muy alto | 0,80 – 1,00 | Referência digital no grupo analisado |
+
+**Limitações**
+
+- O IPD-S é relativo ao grupo de marcas analisado, não absoluto.
+  Adicionar ou remover uma marca pode alterar os scores das demais.
+- Não considera dark posts, mídia paga isolada, Google, imprensa,
+  Wikipédia ou outras camadas do digital fora das redes sociais.
+- A dimensão de Sentimento depende da disponibilidade de análise de
+  comentários (pode ser omitida se não houver dados).
+""")
+
 
     if "ipds_uploader_key" not in st.session_state:
         st.session_state["ipds_uploader_key"] = 0
