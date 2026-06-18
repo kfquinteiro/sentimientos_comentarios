@@ -162,6 +162,14 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     chart_df["tema"] = tc.classify_series(
         chart_df["comentario"].fillna(""), selected_dict_key)
 
+    total_classified = (chart_df["tema"] != "Otros").sum()
+    total_otros = (chart_df["tema"] == "Otros").sum()
+    pct_classified = round(total_classified / len(chart_df) * 100) if len(chart_df) else 0
+    mc1, mc2, mc3 = st.columns(3)
+    mc1.metric("Clasificados", "{} ({}%)".format(total_classified, pct_classified))
+    mc2.metric("Sin tema (Otros)", total_otros)
+    mc3.metric("Temas detectados", chart_df[chart_df["tema"] != "Otros"]["tema"].nunique())
+
     tc1, tc2 = st.columns(2)
     bubble_matrix = charts.bubble_matrix_tema_sentimiento(chart_df)
     if bubble_matrix is not None:
@@ -174,6 +182,27 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     heatmap = charts.heatmap_tema_red(chart_df)
     if heatmap is not None:
         st.plotly_chart(heatmap, use_container_width=True)
+
+    if total_otros > 0:
+        with st.expander("Explorar comentarios sin tema (Otros) — {} comentarios".format(total_otros)):
+            otros_df = chart_df[chart_df["tema"] == "Otros"]
+            otros_words = charts.top_words(otros_df["comentario"].dropna(), n=30)
+            if otros_words:
+                st.caption("Palabras más frecuentes en comentarios sin clasificar:")
+                word_labels = ["{} ({})".format(w, c) for w, c in otros_words]
+                sel_otros = st.pills(
+                    "Haz clic para ver ejemplos", word_labels,
+                    key="{}_otros_pill".format(key_prefix),
+                )
+                if sel_otros:
+                    w = sel_otros.split(" (")[0]
+                    examples = otros_df[otros_df["comentario"].str.lower().str.contains(w, na=False)]
+                    if "likes" in examples.columns:
+                        examples = examples.sort_values("likes", ascending=False)
+                    st.dataframe(
+                        examples[["comentario"]].head(10).rename(columns={"comentario": "Comentario"}),
+                        hide_index=True, use_container_width=True,
+                    )
 
     networks = sorted(df["Red"].dropna().unique().tolist())
 
