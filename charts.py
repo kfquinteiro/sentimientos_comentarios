@@ -81,31 +81,29 @@ def top_words(texts, n=20):
 
 def interactive_wordcloud_html(word_counts, click_red=None):
     """Nube de palabras HTML con palabras clicables.
-    Cada palabra es un link que navega al padre con query params."""
+    Usa postMessage para comunicar al padre qué palabra fue clickeada."""
     if not word_counts:
         return None
     max_c = word_counts[0][1]
     min_c = word_counts[-1][1] if len(word_counts) > 1 else max_c
     rng = max(max_c - min_c, 1)
 
+    red_js = "'{}'".format(click_red) if click_red else "null"
+
     spans = []
     for i, (word, count) in enumerate(word_counts):
         size = 14 + int(28 * (count - min_c) / rng)
         color = WIPER_PALETTE[i % len(WIPER_PALETTE)]
         weight = "bold" if size > 24 else "normal"
-        params = "wc_word={}".format(word)
-        if click_red:
-            params += "&wc_red={}".format(click_red)
         spans.append(
-            '<a href="?{params}" target="_parent" '
+            '<span data-word="{word}" '
             'style="font-size:{size}px;color:{color};cursor:pointer;'
             'padding:3px 6px;display:inline-block;font-weight:{weight};'
-            'text-decoration:none;transition:opacity .15s" '
+            'text-decoration:none;transition:opacity .15s;user-select:none" '
             'onmouseover="this.style.opacity=0.6;this.style.textDecoration=\'underline\'" '
             'onmouseout="this.style.opacity=1;this.style.textDecoration=\'none\'">'
-            '{word}</a>'.format(
-                params=params, size=size, color=color,
-                weight=weight, word=word,
+            '{word}</span>'.format(
+                size=size, color=color, weight=weight, word=word,
             )
         )
 
@@ -113,7 +111,22 @@ def interactive_wordcloud_html(word_counts, click_red=None):
         '<div style="display:flex;flex-wrap:wrap;align-items:center;'
         'justify-content:center;gap:2px;padding:12px;'
         'background:white;border-radius:8px;min-height:100px">'
-        '{}</div>'.format('\n'.join(spans))
+        '{spans}</div>'
+        '<script>'
+        'document.querySelectorAll("[data-word]").forEach(function(el){{'
+        'el.addEventListener("click",function(){{'
+        'var w=this.dataset.word,r={red};'
+        'try{{'
+        'var u=new URL(window.parent.location.href);'
+        'u.searchParams.set("wc_word",w);'
+        'if(r)u.searchParams.set("wc_red",r);'
+        'window.parent.location.href=u.toString();'
+        '}}catch(e){{'
+        'window.parent.postMessage({{type:"wc_click",word:w,red:r}},"*");'
+        '}}'
+        '}});'
+        '}});'
+        '</script>'.format(spans='\n'.join(spans), red=red_js)
     )
 
 
@@ -215,6 +228,79 @@ def line_over_time_by_network(df):
         labels={"mes": "Mes", "sentimiento": "Sentimiento", "red": "Red"},
     )
     fig.update_yaxes(matches=None, showticklabels=True)
+    return fig
+
+
+def bubble_matrix_tema_sentimiento(df, tema_col="tema"):
+    """Bubble matrix: Tema × Sentimiento. Tamaño = cantidad de comentarios."""
+    if tema_col not in df.columns or "sentimiento" not in df.columns:
+        return None
+    agg = (df.groupby([tema_col, "sentimiento"]).size()
+           .reset_index(name="Cantidad"))
+    if agg.empty:
+        return None
+    fig = px.scatter(
+        agg, x="sentimiento", y=tema_col, size="Cantidad", color="sentimiento",
+        size_max=50,
+        category_orders={"sentimiento": SENTIMENT_ORDER},
+        color_discrete_map=SENTIMENT_COLORS,
+        title="Temas × Sentimiento",
+        labels={tema_col: "Tema", "sentimiento": "Sentimiento", "Cantidad": "Comentarios"},
+    )
+    fig.update_layout(showlegend=False, yaxis={"categoryorder": "total ascending"})
+    return fig
+
+
+def bubble_prioridad(df, tema_col="tema"):
+    """Bubble de prioridad: X=volumen, Y=%negativo, tamaño=likes, color=tema."""
+    if tema_col not in df.columns or "sentimiento" not in df.columns:
+        return None
+    grouped = df.groupby(tema_col).agg(
+        Comentarios=("sentimiento", "size"),
+        Negativos=("sentimiento", lambda s: (s == "Negativo").sum()),
+        Likes=("likes", lambda s: s.fillna(0).sum() if "likes" in df.columns else 0),
+    ).reset_index()
+    grouped["% Negativo"] = (grouped["Negativos"] / grouped["Comentarios"] * 100).round(1)
+    grouped["Likes"] = grouped["Likes"].fillna(0).astype(int)
+    grouped = grouped[grouped["Comentarios"] > 0]
+    if grouped.empty:
+        return None
+    fig = px.scatter(
+        grouped, x="Comentarios", y="% Negativo",
+        size="Likes", color=tema_col, text=tema_col,
+        size_max=50,
+        title="Prioridad: volumen × negatividad × engagement",
+        labels={tema_col: "Tema"},
+    )
+    fig.update_traces(textposition="top center", textfont_size=10)
+    fig.update_layout(showlegend=False)
+    return fig
+
+
+def heatmap_tema_red(df, tema_col="tema"):
+    """Heatmap: Tema × Red. Color = cantidad de comentarios."""
+    if tema_col not in df.columns or "red" not in df.columns:
+        return None
+    agg = (df.groupby([tema_col, "red"]).size()
+           .reset_index(name="Cantidad"))
+    if agg.empty:
+        return None
+    pivot = agg.pivot(index=tema_col, columns="red", values="Cantidad").fillna(0)
+    pivot = pivot.loc[pivot.sum(axis=1).sort_values(ascending=True).index]
+    import plotly.graph_objects as go
+    fig = go.Figure(data=go.Heatmap(
+        z=pivot.values,
+        x=pivot.columns.tolist(),
+        y=pivot.index.tolist(),
+        colorscale=[[0, "#f0f2f6"], [1, "#A73253"]],
+        texttemplate="%{z:.0f}",
+        hovertemplate="Tema: %{y}<br>Red: %{x}<br>Comentarios: %{z}<extra></extra>",
+    ))
+    fig.update_layout(
+        title="Temas × Red",
+        xaxis_title="Red",
+        yaxis_title="Tema",
+    )
     return fig
 
 

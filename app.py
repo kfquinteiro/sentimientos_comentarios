@@ -19,6 +19,7 @@ import orchestrator as orc
 import report as rep
 import run_analysis as ra
 import spreadsheet_reader as sr
+import topic_classifier as tc
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_DIR = os.path.join(PROJECT_DIR, "input")
@@ -146,6 +147,33 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     time_by_network_fig = charts.line_over_time_by_network(chart_df)
     if time_by_network_fig is not None:
         st.plotly_chart(time_by_network_fig, use_container_width=True)
+
+    # ── Clasificación por tema ────────────────────────────────────────────
+    st.subheader("Análisis por tema")
+    dict_options = tc.available_dictionaries()
+    dict_labels = [name for _, name in dict_options]
+    dict_keys = [k for k, _ in dict_options]
+    selected_dict_label = st.selectbox(
+        "Diccionario de temas", dict_labels,
+        key="{}_dict_select".format(key_prefix),
+    )
+    selected_dict_key = dict_keys[dict_labels.index(selected_dict_label)]
+
+    chart_df["tema"] = tc.classify_series(
+        chart_df["comentario"].fillna(""), selected_dict_key)
+
+    tc1, tc2 = st.columns(2)
+    bubble_matrix = charts.bubble_matrix_tema_sentimiento(chart_df)
+    if bubble_matrix is not None:
+        tc1.plotly_chart(bubble_matrix, use_container_width=True)
+
+    bubble_prio = charts.bubble_prioridad(chart_df)
+    if bubble_prio is not None:
+        tc2.plotly_chart(bubble_prio, use_container_width=True)
+
+    heatmap = charts.heatmap_tema_red(chart_df)
+    if heatmap is not None:
+        st.plotly_chart(heatmap, use_container_width=True)
 
     networks = sorted(df["Red"].dropna().unique().tolist())
 
