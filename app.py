@@ -179,6 +179,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
         key="{}_dict_select".format(key_prefix),
     )
     selected_dict_key = dict_keys[dict_labels.index(selected_dict_label)]
+    st.session_state["selected_dict_key"] = selected_dict_key
 
     chart_df["tema"] = tc.classify_series(
         chart_df["comentario"].fillna(""), selected_dict_key)
@@ -1248,12 +1249,7 @@ with tab_clasif:
         clasif_df = pd.read_excel(clasif_path, sheet_name="Comentarios")
         clasif_df.columns = [str(c).strip() for c in clasif_df.columns]
 
-        dict_opts = tc.available_dictionaries()
-        dict_labels = [n for _, n in dict_opts]
-        dict_keys = [k for k, _ in dict_opts]
-        sel_dict_label = st.selectbox(
-            "Diccionario de temas", dict_labels, key="clasif_dict")
-        sel_dict_key = dict_keys[dict_labels.index(sel_dict_label)]
+        sel_dict_key = st.session_state.get("selected_dict_key", "servicios_financieros")
 
         if "Tema" not in clasif_df.columns:
             clasif_df["Tema"] = tc.classify_series(
