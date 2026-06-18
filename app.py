@@ -1498,7 +1498,7 @@ with tab_ipds:
 
                 if st.session_state.get("ipds_ready"):
                     try:
-                        ipds_result = ipds.calculate(posts_filtered)
+                        ipds_result = ipds.calculate(posts_filtered, lang=_lang())
 
                         st.plotly_chart(ipds.thermometer_fig(ipds_result, lang=_lang()),
                                         use_container_width=True)

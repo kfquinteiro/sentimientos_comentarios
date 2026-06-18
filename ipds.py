@@ -15,13 +15,18 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-BANDS = [
-    (0.00, 0.20, "Muy bajo",  "#e74c3c"),
-    (0.20, 0.40, "Bajo",      "#e67e22"),
-    (0.40, 0.60, "Medio",     "#f1c40f"),
-    (0.60, 0.80, "Alto",      "#2ecc71"),
-    (0.80, 1.00, "Muy alto",  "#1a9850"),
+_BAND_DATA = [
+    (0.00, 0.20, {"pt": "Muito baixo", "es": "Muy bajo"},  "#e74c3c"),
+    (0.20, 0.40, {"pt": "Baixo",       "es": "Bajo"},      "#e67e22"),
+    (0.40, 0.60, {"pt": "Médio",       "es": "Medio"},     "#f1c40f"),
+    (0.60, 0.80, {"pt": "Alto",        "es": "Alto"},      "#2ecc71"),
+    (0.80, 1.00, {"pt": "Muito alto",  "es": "Muy alto"},  "#1a9850"),
 ]
+
+
+def _bands(lang="pt"):
+    return [(lo, hi, labels.get(lang, labels["pt"]), color)
+            for lo, hi, labels, color in _BAND_DATA]
 
 EPSILON = 0.001
 
@@ -33,7 +38,7 @@ def _minmax(series):
     return ((series - mn) / (mx - mn)).clip(EPSILON, 1.0)
 
 
-def calculate(posts_df, sentiment_df=None):
+def calculate(posts_df, sentiment_df=None, lang="pt"):
     """Calcula o IPD-S por marca com normalização por plataforma.
 
     Metodologia inspirada no IDH (PNUD):
@@ -126,11 +131,13 @@ def calculate(posts_df, sentiment_df=None):
         lambda row: math.prod(row) ** (1 / len(row)), axis=1
     ).round(3)
 
+    bands = _bands(lang)
+
     def _band(v):
-        for lo, hi, label, _ in BANDS:
+        for lo, hi, label, _ in bands:
             if v < hi or hi == 1.00:
                 return label
-        return BANDS[-1][2]
+        return bands[-1][2]
 
     by_brand["faixa"] = by_brand["ipds"].apply(_band)
 
@@ -162,8 +169,9 @@ _IPDS_LABELS = {
 def thermometer_fig(ipds_df, lang="pt"):
     """Cria o termômetro horizontal do IPD-S (estilo da imagem de referência)."""
     fig = go.Figure()
+    bands = _bands(lang)
 
-    for lo, hi, label, color in BANDS:
+    for lo, hi, label, color in bands:
         fig.add_shape(
             type="rect", x0=lo, x1=hi, y0=0, y1=1,
             fillcolor=color, opacity=0.25, line_width=0,
@@ -176,7 +184,7 @@ def thermometer_fig(ipds_df, lang="pt"):
         score = row["IPD-S"]
         marca = row["Marca"]
         band_color = "#95a5a6"
-        for lo, hi, _, color in BANDS:
+        for lo, hi, _, color in bands:
             if score < hi or hi == 1.00:
                 band_color = color
                 break
@@ -193,7 +201,7 @@ def thermometer_fig(ipds_df, lang="pt"):
             showlegend=False,
         ))
 
-    for _, _, label, color in BANDS:
+    for _, _, label, color in bands:
         fig.add_trace(go.Scatter(
             x=[None], y=[None], mode="markers",
             marker=dict(size=12, color=color),
