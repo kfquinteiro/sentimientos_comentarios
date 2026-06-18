@@ -418,6 +418,9 @@ compensar una dimension con la otra.
 """,
     },
     "brand": {"pt": "Marca", "es": "Marca"},
+    "col_network": {"pt": "Rede", "es": "Red"},
+    "sentiment_label": {"pt": "Sentimento", "es": "Sentimiento"},
+    "topic_label": {"pt": "Tema", "es": "Tema"},
 }
 
 

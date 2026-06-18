@@ -1347,13 +1347,14 @@ with tab_clasif:
             edited = st.data_editor(
                 page_slice[show],
                 column_config={
+                    "Red": st.column_config.TextColumn(_t("col_network")),
                     "_sent_display": st.column_config.SelectboxColumn(
-                        "Sentimiento",
+                        _t("sentiment_label"),
                         options=_SENT_OPTIONS_DISPLAY,
                         required=True,
                     ),
                     "Tema": st.column_config.SelectboxColumn(
-                        "Tema",
+                        _t("topic_label"),
                         options=topic_list,
                         required=True,
                     ),
@@ -1364,6 +1365,7 @@ with tab_clasif:
                 disabled=locked,
                 hide_index=True,
                 use_container_width=True,
+                height=min(page_size * 38 + 40, 3850),
             )
             if st.form_submit_button(_t("save_changes"), type="primary"):
                 edited_sent = edited["_sent_display"].map(_SENT_FROM_DISPLAY)
