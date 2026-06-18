@@ -1268,10 +1268,12 @@ with tab_clasif:
         c_red = fc2.selectbox("Red", c_redes, key="clasif_red_f")
         c_sent = fc3.selectbox("Sentimiento", ["Todos"] + _SENT_OPTIONS_DISPLAY,
                                key="clasif_sent_f")
-        fc5, fc6 = st.columns(2)
-        c_tema = fc5.selectbox("Tema", ["Todos"] + topic_list, key="clasif_tema_f")
+        fc5, fc6, fc7 = st.columns(3)
+        c_marcas = ["Todas"] + sorted(clasif_df["Marca"].dropna().unique().tolist()) if "Marca" in clasif_df.columns else ["Todas"]
+        c_marca = fc5.selectbox("Marca", c_marcas, key="clasif_marca_f")
+        c_tema = fc6.selectbox("Tema", ["Todos"] + topic_list, key="clasif_tema_f")
         c_links = ["Todos"] + sorted(clasif_df["Link del post"].dropna().unique().tolist()) if "Link del post" in clasif_df.columns else ["Todos"]
-        c_link = fc6.selectbox("Link del post", c_links, key="clasif_link_f")
+        c_link = fc7.selectbox("Link del post", c_links, key="clasif_link_f")
 
         filtered = clasif_df.copy()
         if c_search.strip():
@@ -1282,6 +1284,8 @@ with tab_clasif:
         if c_sent != "Todos":
             real_sent = _SENT_FROM_DISPLAY.get(c_sent, c_sent)
             filtered = filtered[filtered["Sentimiento"] == real_sent]
+        if c_marca != "Todas" and "Marca" in filtered.columns:
+            filtered = filtered[filtered["Marca"] == c_marca]
         if c_tema != "Todos":
             filtered = filtered[filtered["Tema"] == c_tema]
         if c_link != "Todos" and "Link del post" in filtered.columns:
