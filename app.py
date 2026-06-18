@@ -2,6 +2,7 @@
 comentarios vía ExportComments."""
 import io
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -135,15 +136,29 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     df = load_report_data(active_path, mtime)
 
     if brand_mapping and "Marca" in df.columns:
-        _lower_map = {}
+        _bmap = {}
+        _bmap_fuzzy = {}
         for profile, desired in brand_mapping.items():
-            _lower_map[profile.strip().lower()] = desired
+            _bmap[profile.strip().lower()] = desired
             auto = cons.normalize_brand(profile)
             if auto:
-                _lower_map[auto.lower()] = desired
-        df["Marca"] = df["Marca"].apply(
-            lambda m: _lower_map.get(str(m).strip().lower(), m) if pd.notna(m) else m
-        )
+                _bmap[auto.lower()] = desired
+            fuzzy_key = re.sub(r"[\s_.]+", "", profile.lower())
+            _bmap_fuzzy[fuzzy_key] = desired
+
+        def _apply_brand(m):
+            if pd.isna(m):
+                return m
+            s = str(m).strip()
+            low = s.lower()
+            if low in _bmap:
+                return _bmap[low]
+            fuzzy = re.sub(r"[\s_.]+", "", low)
+            if fuzzy in _bmap_fuzzy:
+                return _bmap_fuzzy[fuzzy]
+            return s
+
+        df["Marca"] = df["Marca"].apply(_apply_brand)
 
     total = len(df)
     counts = df["Sentimiento"].value_counts()
@@ -268,8 +283,8 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
                 fcol1, fcol2 = st.columns(2)
                 red_opts = ["Todas"] + sorted(matches["Red"].dropna().unique().tolist()) if "Red" in matches.columns else ["Todas"]
                 sent_opts = ["Todos"] + charts.SENTIMENT_ORDER
-                sel_r = fcol1.selectbox("Red", red_opts, key="{}_wc_red_f".format(key_prefix))
-                sel_s = fcol2.selectbox("Sentimiento", sent_opts, key="{}_wc_sent_f".format(key_prefix))
+                sel_r = fcol1.selectbox(_t("col_network"), red_opts, key="{}_wc_red_f".format(key_prefix))
+                sel_s = fcol2.selectbox(_t("sentiment_label"), sent_opts, key="{}_wc_sent_f".format(key_prefix))
 
                 if sel_r != "Todas" and "Red" in matches.columns:
                     matches = matches[matches["Red"] == sel_r]
@@ -303,7 +318,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     st.subheader(_t("wordcloud_by_sentiment"))
     network_options = ["Todas"] + networks
     selected_network = st.selectbox(
-        "Red", network_options, key="wc_red_{}".format(key_prefix)
+        _t("col_network"), network_options, key="wc_red_{}".format(key_prefix)
     )
     red_filter = None if selected_network == "Todas" else selected_network
 
@@ -1485,10 +1500,10 @@ with tab_ipds:
                     try:
                         ipds_result = ipds.calculate(posts_filtered)
 
-                        st.plotly_chart(ipds.thermometer_fig(ipds_result),
+                        st.plotly_chart(ipds.thermometer_fig(ipds_result, lang=_lang()),
                                         use_container_width=True)
 
-                        dim_fig = ipds.dimensions_bar_fig(ipds_result)
+                        dim_fig = ipds.dimensions_bar_fig(ipds_result, lang=_lang())
                         if dim_fig is not None:
                             st.plotly_chart(dim_fig, use_container_width=True)
 
