@@ -1212,7 +1212,7 @@ _SENT_OPTIONS_DISPLAY = ["🟢 Positivo", "🟡 Neutral", "🔴 Negativo"]
 
 
 def _resolve_clasif_path():
-    """Retorna o path do arquivo ativo para edição, ou None."""
+    """Retorna (path, brand_mapping) do arquivo ativo para edição."""
     source = st.radio(
         "Fuente de datos", ["Ejecución exportada", "Base subida"],
         horizontal=True, key="clasif_source",
@@ -1221,33 +1221,46 @@ def _resolve_clasif_path():
         run_opts = _runs_with_exports()
         if not run_opts:
             st.info("No hay ejecuciones con análisis.")
-            return None
+            return None, {}
         sel = st.selectbox("Ejecución", run_opts, key="clasif_run")
         run_dir = os.path.join(RUNS_DIR, sel)
         analysis_state = ra.load_analysis_state(run_dir)
         if not analysis_state or analysis_state.get("stage") != "completado":
             st.info("Esta ejecución no tiene análisis completado. "
                     "Genera el análisis en la pestaña Análisis primero.")
-            return None
+            return None, {}
         report_path = os.path.join(run_dir, analysis_state["report_file"])
         corrected = os.path.join(run_dir, CORRECTED_FILENAME)
-        return corrected if os.path.exists(corrected) else report_path
+        bmap = orc.load_state(run_dir).get("brand_mapping", {})
+        path = corrected if os.path.exists(corrected) else report_path
+        return path, bmap
     else:
         base_path = os.path.join(UPLOADS_DIR, UPLOADED_BASE_FILENAME)
         if not os.path.exists(base_path):
             st.info("No hay base subida. Sube una en la pestaña Análisis.")
-            return None
-        return base_path
+            return None, {}
+        return base_path, {}
 
 
 with tab_clasif:
     st.caption("Revisa y corrige la clasificación de sentimiento y tema de cada "
                "comentario. Los cambios se guardan en el archivo XLSX que descargas.")
 
-    clasif_path = _resolve_clasif_path()
+    clasif_path, clasif_brand_map = _resolve_clasif_path()
     if clasif_path is not None:
         clasif_df = pd.read_excel(clasif_path, sheet_name="Comentarios")
         clasif_df.columns = [str(c).strip() for c in clasif_df.columns]
+
+        if clasif_brand_map and "Marca" in clasif_df.columns:
+            _clm = {}
+            for _prof, _desired in clasif_brand_map.items():
+                _clm[_prof.strip().lower()] = _desired
+                _auto = cons.normalize_brand(_prof)
+                if _auto:
+                    _clm[_auto.lower()] = _desired
+            clasif_df["Marca"] = clasif_df["Marca"].apply(
+                lambda m: _clm.get(str(m).strip().lower(), m) if pd.notna(m) else m
+            )
 
         sel_dict_key = st.session_state.get("selected_dict_key", "servicios_financieros")
 
