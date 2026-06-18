@@ -158,6 +158,24 @@ DICTIONARIES = {
                 "orgullo", "gracias", "gratitud", "bravo", "maravilloso",
                 "maravillosa", "mejor", "sigue así", "muy bien", "enhorabuena",
             ],
+            "Democracia": [
+                # PT-BR
+                "democracia", "democrático", "democrática", "voto", "eleição",
+                "eleições", "urna", "urna eletrônica", "constituição", "estado de direito",
+                "liberdade de expressão", "liberdade de imprensa", "ditadura",
+                "golpe", "golpe de estado", "autoritarismo", "autoritário",
+                "censura", "plebiscito", "referendo", "congresso", "senado",
+                "câmara", "deputado", "senador", "stf", "supremo",
+                "poder judiciário", "separação de poderes", "soberania popular",
+                # ES
+                "democracia", "democrático", "democrática", "voto", "elección",
+                "elecciones", "urna", "constitución", "estado de derecho",
+                "libertad de expresión", "libertad de prensa", "dictadura",
+                "golpe", "golpe de estado", "autoritarismo", "autoritario",
+                "censura", "plebiscito", "referéndum", "congreso", "senado",
+                "cámara", "diputado", "senador", "poder judicial",
+                "separación de poderes", "soberanía popular",
+            ],
             "Clã Bolsonaro": [
                 "bolsonaro", "jair bolsonaro", "flávio bolsonaro",
                 "carlos bolsonaro", "renan bolsonaro", "eduardo bolsonaro",
