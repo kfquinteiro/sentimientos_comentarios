@@ -11,6 +11,7 @@ Normalização min-max dentro do grupo de marcas comparadas.
 """
 import math
 
+import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -73,8 +74,8 @@ def calculate(posts_df, sentiment_df=None):
     else:
         by_brand["posts_per_month"] = by_brand["posts"]
 
-    by_brand["d_atividade"] = _minmax(by_brand["posts_per_month"])
-    by_brand["d_engajamento"] = _minmax(by_brand["avg_interactions"])
+    by_brand["d_atividade"] = _minmax(np.log1p(by_brand["posts_per_month"]))
+    by_brand["d_engajamento"] = _minmax(np.log1p(by_brand["avg_interactions"]))
     by_brand["d_multicanal"] = (by_brand["networks"] / max(total_networks, 1)).clip(EPSILON, 1.0)
 
     dimensions = ["d_atividade", "d_engajamento", "d_multicanal"]
@@ -129,7 +130,9 @@ def thermometer_fig(ipds_df):
             layer="below",
         )
 
-    for _, row in ipds_df.iterrows():
+    sorted_df = ipds_df.sort_values("IPD-S").reset_index(drop=True)
+    n = len(sorted_df)
+    for i, (_, row) in enumerate(sorted_df.iterrows()):
         score = row["IPD-S"]
         marca = row["Marca"]
         band_color = "#95a5a6"
@@ -137,18 +140,20 @@ def thermometer_fig(ipds_df):
             if score < hi or hi == 1.00:
                 band_color = color
                 break
+        y_pos = 0.3 + (i / max(n - 1, 1)) * 0.9 if n > 1 else 0.7
         fig.add_trace(go.Scatter(
-            x=[score], y=[0.5],
+            x=[score], y=[y_pos],
             mode="markers+text",
-            marker=dict(size=18, color=band_color, line=dict(width=2, color="white")),
-            text=["<b>{}</b><br>{}".format(marca, score)],
+            marker=dict(size=20, color=band_color,
+                        line=dict(width=2, color="white")),
+            text=["<b>{}</b>  {}".format(marca, score)],
             textposition="top center",
-            textfont=dict(size=12),
+            textfont=dict(size=11),
             hovertemplate="{}: {}<extra></extra>".format(marca, score),
             showlegend=False,
         ))
 
-    for lo, hi, label, color in BANDS:
+    for _, _, label, color in BANDS:
         fig.add_trace(go.Scatter(
             x=[None], y=[None], mode="markers",
             marker=dict(size=12, color=color),
@@ -160,12 +165,12 @@ def thermometer_fig(ipds_df):
         xaxis=dict(
             range=[-0.02, 1.02],
             tickmode="linear", tick0=0, dtick=0.05,
-            title="IPD-S",
         ),
-        yaxis=dict(visible=False, range=[-0.3, 1.8]),
-        height=350,
-        legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
-        margin=dict(t=60, b=80),
+        yaxis=dict(visible=False, range=[-0.2, 2.2]),
+        height=400,
+        legend=dict(orientation="h", yanchor="top", y=-0.12,
+                    xanchor="center", x=0.5),
+        margin=dict(t=60, b=100),
     )
     return fig
 
