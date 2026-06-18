@@ -1299,38 +1299,37 @@ with tab_clasif:
                 if c in page_slice.columns]
         locked = [c for c in show if c not in ("_sent_display", "Tema")]
 
-        edited = st.data_editor(
-            page_slice[show],
-            column_config={
-                "_sent_display": st.column_config.SelectboxColumn(
-                    "Sentimiento",
-                    options=_SENT_OPTIONS_DISPLAY,
-                    required=True,
-                ),
-                "Tema": st.column_config.SelectboxColumn(
-                    "Tema",
-                    options=topic_list,
-                    required=True,
-                ),
-                "Link del post": st.column_config.LinkColumn(
-                    "Link", display_text="🔗", width="small",
-                ),
-            },
-            disabled=locked,
-            hide_index=True,
-            use_container_width=True,
-            key="clasif_editor",
-        )
-
-        if st.button("Guardar cambios", type="primary", key="clasif_save"):
-            edited_sent = edited["_sent_display"].map(_SENT_FROM_DISPLAY)
-            clasif_df.loc[edited.index, "Sentimiento"] = edited_sent.values
-            clasif_df.loc[edited.index, "Tema"] = edited["Tema"].values
-            save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
-            clasif_df[save_cols].to_excel(
-                clasif_path, sheet_name="Comentarios", index=False)
-            st.success("Cambios guardados.")
-            st.rerun()
+        with st.form("clasif_form"):
+            edited = st.data_editor(
+                page_slice[show],
+                column_config={
+                    "_sent_display": st.column_config.SelectboxColumn(
+                        "Sentimiento",
+                        options=_SENT_OPTIONS_DISPLAY,
+                        required=True,
+                    ),
+                    "Tema": st.column_config.SelectboxColumn(
+                        "Tema",
+                        options=topic_list,
+                        required=True,
+                    ),
+                    "Link del post": st.column_config.LinkColumn(
+                        "Link", display_text="🔗", width="small",
+                    ),
+                },
+                disabled=locked,
+                hide_index=True,
+                use_container_width=True,
+            )
+            if st.form_submit_button("Guardar cambios", type="primary"):
+                edited_sent = edited["_sent_display"].map(_SENT_FROM_DISPLAY)
+                clasif_df.loc[edited.index, "Sentimiento"] = edited_sent.values
+                clasif_df.loc[edited.index, "Tema"] = edited["Tema"].values
+                save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
+                clasif_df[save_cols].to_excel(
+                    clasif_path, sheet_name="Comentarios", index=False)
+                st.success("Cambios guardados.")
+                st.rerun()
 
         st.download_button(
             "Descargar base corregida (XLSX)",
