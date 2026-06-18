@@ -1290,23 +1290,27 @@ with tab_clasif:
         # ── Paginação ──
         if "clasif_page_num" not in st.session_state:
             st.session_state["clasif_page_num"] = 1
-        _pg_sz, _pg_prev, _pg_info, _pg_next = st.columns([1, 1, 2, 1])
-        page_size = _pg_sz.selectbox("Por página", [25, 50, 100], index=1,
-                                      key="clasif_pagesize")
+        page_size = st.selectbox("Por página", [25, 50, 100], index=1,
+                                  key="clasif_pagesize")
         total_pages = max(1, -(-len(filtered) // page_size))
         if st.session_state["clasif_page_num"] > total_pages:
             st.session_state["clasif_page_num"] = 1
+        _pg_prev, _pg_info, _pg_next = st.columns([1, 4, 1])
         if _pg_prev.button("←", disabled=st.session_state["clasif_page_num"] <= 1,
-                           key="clasif_prev", use_container_width=True):
+                           key="clasif_prev"):
             st.session_state["clasif_page_num"] -= 1
             st.rerun()
         if _pg_next.button("→", disabled=st.session_state["clasif_page_num"] >= total_pages,
-                           key="clasif_next", use_container_width=True):
+                           key="clasif_next"):
             st.session_state["clasif_page_num"] += 1
             st.rerun()
         page_num = st.session_state["clasif_page_num"]
-        _pg_info.markdown("Página **{}** de **{}** · {} comentarios".format(
-            page_num, total_pages, len(filtered)))
+        _pg_info.markdown(
+            "<div style='text-align:center;padding-top:8px'>"
+            "Página <b>{}</b> de <b>{}</b> · {} comentarios</div>".format(
+                page_num, total_pages, len(filtered)),
+            unsafe_allow_html=True,
+        )
 
         start = (page_num - 1) * page_size
         page_slice = filtered.iloc[start:start + page_size].copy()
