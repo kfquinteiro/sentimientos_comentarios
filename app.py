@@ -428,15 +428,14 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
                 st.plotly_chart(time_by_brand_fig, use_container_width=True)
 
             st.markdown("**Nube de palabras por marca**")
-            wc_brand_cols = st.columns(2)
-            for i, marca in enumerate(marcas):
-                img = build_wordcloud_image(active_path, mtime, marca=marca)
-                with wc_brand_cols[i % 2]:
-                    st.caption(marca)
-                    if img is not None:
-                        st.image(img, use_container_width=True)
-                    else:
-                        st.caption("No hay suficiente texto para generar la nube.")
+            sel_marca_wc = st.selectbox(
+                "Marca", marcas, key="{}_wc_marca_select".format(key_prefix),
+            )
+            img = build_wordcloud_image(active_path, mtime, marca=sel_marca_wc)
+            if img is not None:
+                st.image(img, use_container_width=True)
+            else:
+                st.caption("No hay suficiente texto para generar la nube.")
 
 
 os.makedirs(INPUT_DIR, exist_ok=True)
