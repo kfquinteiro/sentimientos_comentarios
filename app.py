@@ -1300,15 +1300,18 @@ with tab_clasif:
         total_pages = max(1, -(-len(filtered) // page_size))
         if st.session_state["clasif_page_num"] > total_pages:
             st.session_state["clasif_page_num"] = 1
-        _pg_prev, _pg_info, _pg_next = st.columns([1, 6, 1])
+        _pg_prev, _pg_info, _pg_next = st.columns([1, 8, 1])
         if _pg_prev.button("←", disabled=st.session_state["clasif_page_num"] <= 1,
                            key="clasif_prev"):
             st.session_state["clasif_page_num"] -= 1
             st.rerun()
-        if _pg_next.button("→", disabled=st.session_state["clasif_page_num"] >= total_pages,
-                           key="clasif_next"):
-            st.session_state["clasif_page_num"] += 1
-            st.rerun()
+        with _pg_next:
+            st.markdown("<div style='display:flex;justify-content:flex-end'>", unsafe_allow_html=True)
+            if st.button("→", disabled=st.session_state["clasif_page_num"] >= total_pages,
+                         key="clasif_next"):
+                st.session_state["clasif_page_num"] += 1
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
         page_num = st.session_state["clasif_page_num"]
         _pg_info.markdown(
             "<div style='text-align:center;padding-top:8px'>"
