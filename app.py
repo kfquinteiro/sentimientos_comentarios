@@ -1261,14 +1261,17 @@ with tab_clasif:
             _SENT_DISPLAY).fillna("○ Neutral")
 
         # ── Filtros ──
-        fc1, fc2, fc3, fc4 = st.columns(4)
+        fc1, fc2, fc3 = st.columns(3)
         c_search = fc1.text_input("Buscar", key="clasif_search",
                                    placeholder="Texto...")
         c_redes = ["Todas"] + sorted(clasif_df["Red"].dropna().unique().tolist()) if "Red" in clasif_df.columns else ["Todas"]
         c_red = fc2.selectbox("Red", c_redes, key="clasif_red_f")
         c_sent = fc3.selectbox("Sentimiento", ["Todos"] + _SENT_OPTIONS_DISPLAY,
                                key="clasif_sent_f")
-        c_tema = fc4.selectbox("Tema", ["Todos"] + topic_list, key="clasif_tema_f")
+        fc5, fc6 = st.columns(2)
+        c_tema = fc5.selectbox("Tema", ["Todos"] + topic_list, key="clasif_tema_f")
+        c_links = ["Todos"] + sorted(clasif_df["Link del post"].dropna().unique().tolist()) if "Link del post" in clasif_df.columns else ["Todos"]
+        c_link = fc6.selectbox("Link del post", c_links, key="clasif_link_f")
 
         filtered = clasif_df.copy()
         if c_search.strip():
@@ -1281,6 +1284,8 @@ with tab_clasif:
             filtered = filtered[filtered["Sentimiento"] == real_sent]
         if c_tema != "Todos":
             filtered = filtered[filtered["Tema"] == c_tema]
+        if c_link != "Todos" and "Link del post" in filtered.columns:
+            filtered = filtered[filtered["Link del post"] == c_link]
 
         # ── Paginação ──
         pg1, pg2, pg3 = st.columns([1, 1, 2])
