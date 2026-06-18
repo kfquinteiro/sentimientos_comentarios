@@ -1205,9 +1205,9 @@ def _ipds_detect(field, cols):
     return None
 
 
-_SENT_DISPLAY = {"Positivo": "+ Positivo", "Neutral": "○ Neutral", "Negativo": "− Negativo"}
+_SENT_DISPLAY = {"Positivo": "🟢 Positivo", "Neutral": "🟡 Neutral", "Negativo": "🔴 Negativo"}
 _SENT_FROM_DISPLAY = {v: k for k, v in _SENT_DISPLAY.items()}
-_SENT_OPTIONS_DISPLAY = ["+ Positivo", "○ Neutral", "− Negativo"]
+_SENT_OPTIONS_DISPLAY = ["🟢 Positivo", "🟡 Neutral", "🔴 Negativo"]
 
 
 def _resolve_clasif_path():
