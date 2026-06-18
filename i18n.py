@@ -51,6 +51,13 @@ TEXTS = {
         "pt": "Não é possível excluir enquanto a exportação ou análise está em execução.",
         "es": "No se puede eliminar mientras la exportación o el análisis están en ejecución.",
     },
+    "reset_execution": {"pt": "Resetar esta execução", "es": "Resetear esta ejecución"},
+    "reset_warning": {
+        "pt": "Isso vai zerar todos os status para 'pendente', apagar arquivos baixados e permitir coletar novamente.",
+        "es": "Esto reiniciará todos los estados a 'pendiente', borrará archivos descargados y permitirá recolectar nuevamente.",
+    },
+    "reset_confirm": {"pt": "Sim, quero resetar esta execução", "es": "Sí, quiero resetear esta ejecución"},
+    "reset_button": {"pt": "Resetar execução", "es": "Resetear ejecución"},
     "total_links": {"pt": "Total de links", "es": "Total de links"},
     "completed": {"pt": "Concluídos", "es": "Completados"},
     "process": {"pt": "Processo", "es": "Proceso"},
@@ -217,7 +224,7 @@ TEXTS = {
         "es": "Tiempo promedio por link: {} · Tiempo restante estimado: {} ({} pendientes)",
     },
     "failed_jobs_caption": {"pt": "{} link(s) não conseguiram criar o job de exportação.", "es": "{} link(s) no pudieron crear el job de exportación."},
-    "retry_failed_jobs": {"pt": "Reintentar links com erro ao criar job", "es": "Reintentar links con error al crear job"},
+    "retry_failed_jobs": {"pt": "Tentar novamente links com erro ao criar job", "es": "Reintentar links con error al crear job"},
 
     # ── Dashboard (strings restantes) ──
     "visualization": {"pt": "Visualização", "es": "Visualización"},

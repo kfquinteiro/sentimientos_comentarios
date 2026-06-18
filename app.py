@@ -782,6 +782,40 @@ with tab_runs:
                     st.session_state.pop("active_run", None)
                     st.rerun()
 
+        with st.expander(_t("reset_execution")):
+            st.warning(_t("reset_warning"))
+            run_active = is_running(run_dir) or ra.is_analysis_running(run_dir)
+            if run_active:
+                st.caption(_t("cannot_delete_running"))
+            confirm_reset = st.checkbox(
+                _t("reset_confirm"),
+                key="confirm_reset_{}".format(selected_run),
+                disabled=run_active,
+            )
+            with st.container(key="reset_run_button"):
+                if st.button(_t("reset_button"), disabled=not confirm_reset or run_active, type="primary"):
+                    state = orc.load_state(run_dir)
+                    for item in state["items"]:
+                        item["status"] = "pending"
+                        item["guid"] = None
+                        item["file_name"] = None
+                        item["download_url"] = None
+                        item["error"] = None
+                        item["total"] = None
+                        item["total_exported"] = None
+                        item["attempts"] = 0
+                        item["started_at"] = None
+                        item["updated_at"] = None
+                    orc.save_state(run_dir, state)
+                    files_path = orc.files_dir(run_dir)
+                    if os.path.exists(files_path):
+                        shutil.rmtree(files_path)
+                        os.makedirs(files_path)
+                    stop_path = orc.stop_flag_path(run_dir)
+                    if os.path.exists(stop_path):
+                        os.remove(stop_path)
+                    st.rerun()
+
         _status_refresh = "5s" if is_running(run_dir) else None
 
         @st.fragment(run_every=_status_refresh)
