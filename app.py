@@ -179,18 +179,18 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     mc2.metric("Sin tema (Otros)", total_otros)
     mc3.metric("Temas detectados", chart_df[chart_df["tema"] != "Otros"]["tema"].nunique())
 
-    tc1, tc2 = st.columns(2)
-    bubble_matrix = charts.bubble_matrix_tema_sentimiento(chart_df)
-    if bubble_matrix is not None:
-        tc1.plotly_chart(bubble_matrix, use_container_width=True)
-
-    bubble_prio = charts.bubble_prioridad(chart_df)
-    if bubble_prio is not None:
-        tc2.plotly_chart(bubble_prio, use_container_width=True)
-
-    heatmap = charts.heatmap_tema_red(chart_df)
-    if heatmap is not None:
-        st.plotly_chart(heatmap, use_container_width=True)
+    tema_chart = st.radio(
+        "Visualización", ["Temas × Sentimiento", "Prioridad", "Temas × Red"],
+        horizontal=True, key="{}_tema_chart".format(key_prefix),
+    )
+    if tema_chart == "Temas × Sentimiento":
+        fig = charts.bubble_matrix_tema_sentimiento(chart_df)
+    elif tema_chart == "Prioridad":
+        fig = charts.bubble_prioridad(chart_df)
+    else:
+        fig = charts.heatmap_tema_red(chart_df)
+    if fig is not None:
+        st.plotly_chart(fig, use_container_width=True)
 
     if total_otros > 0:
         with st.expander("Explorar comentarios sin tema (Otros) — {} comentarios".format(total_otros)):
