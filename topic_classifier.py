@@ -272,6 +272,38 @@ DICTIONARIES = {
                 "seguro residencial", "deducible", "aseguradora",
                 "seguro de viaje",
             ],
+            "Atendimento": [
+                # PT-BR
+                "atendimento", "call center", "sac", "suporte", "reclamação",
+                "ouvidoria", "chat", "atendente", "espera", "demora", "protocolo",
+                "procon", "reclame aqui", "0800", "whatsapp", "agência",
+                # ES
+                "atención", "atención al cliente", "call center", "soporte",
+                "reclamación", "queja", "chat", "agente", "espera", "demora",
+                "protocolo", "condusef", "whatsapp", "sucursal", "sucursales",
+            ],
+            "Taxas e cobranças": [
+                # PT-BR
+                "taxa", "tarifa", "cobrança", "cobrança indevida", "juros", "iof",
+                "multa", "mora", "encargo", "spread", "cet", "estorno",
+                "cobrança abusiva", "anuidade",
+                # ES
+                "tasa", "tarifa", "cobro", "cobro indebido", "comisión",
+                "multa", "mora", "cargo", "recargo", "costo", "cobro abusivo",
+                "anualidad",
+            ],
+            "App e canais digitais": [
+                # PT-BR
+                "app", "aplicativo", "internet banking", "site", "plataforma",
+                "biometria", "reconhecimento facial", "notificação", "push",
+                "bug", "erro", "instabilidade", "fora do ar", "lento",
+                "atualização", "login", "senha",
+                # ES
+                "app", "aplicación", "banca en línea", "banca móvil", "sitio",
+                "plataforma", "biometría", "reconocimiento facial", "notificación",
+                "error", "inestabilidad", "fuera de servicio", "lento",
+                "actualización", "login", "contraseña",
+            ],
         },
     },
 }
