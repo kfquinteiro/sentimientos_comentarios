@@ -222,7 +222,7 @@ def line_over_time_by_brand(df):
         labels={"mes": "Mes", "sentimiento": "Sentimiento", "marca": "Marca"},
     )
     fig.update_yaxes(matches=None, showticklabels=True)
-    fig.update_layout(height=max(400, n_brands * 280))
+    fig.update_layout(height=max(350, n_brands * 200))
     fig.for_each_annotation(lambda a: a.update(text=a.text.split("=", 1)[-1]))
     return fig
 
