@@ -126,6 +126,15 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
                                brand_mapping=None):
     df = load_report_data(active_path, mtime)
 
+    if brand_mapping and "Marca" in df.columns:
+        brand_fix = {}
+        for profile, desired in brand_mapping.items():
+            auto = cons.normalize_brand(profile)
+            if auto and auto != desired:
+                brand_fix[auto] = desired
+        if brand_fix:
+            df["Marca"] = df["Marca"].replace(brand_fix)
+
     total = len(df)
     counts = df["Sentimiento"].value_counts()
     col1, col2, col3, col4 = st.columns(4)

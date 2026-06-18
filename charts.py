@@ -43,6 +43,15 @@ SPANISH_STOPWORDS = {
     # ruido típico de redes sociales
     "jaja", "jajaja", "jajajaja", "jeje", "jejeje", "like", "follow", "vs",
     "https", "http", "com", "www",
+    # PT-BR — pronomes, verbos auxiliares e conectores frequentes
+    "uma", "umas", "uns", "tem", "pra", "vai", "essa", "isso", "sua",
+    "dos", "seu", "foi", "nem", "sem", "mesmo", "pelo", "pela", "fas",
+    "você", "vocês", "dele", "dela", "deles", "delas", "nas", "nos",
+    "num", "numa", "são", "está", "estão", "ser", "ter", "não", "meu",
+    "minha", "teu", "tua", "esse", "esta", "esses", "essas", "isso",
+    "aqui", "ali", "lá", "bem", "mal", "sim", "ele", "ela", "eles",
+    "elas", "nós", "gente", "tão", "pro", "das", "aos", "dum", "duma",
+    "haha", "kkk", "kkkk", "kkkkk", "rsrs",
 }
 
 URL_RE = re.compile(r"https?://\S+|www\.\S+")
@@ -56,7 +65,7 @@ EMOJI_RE = re.compile(
     "]+",
     flags=re.UNICODE,
 )
-WORD_RE = re.compile(r"[a-záéíóúñü]+")
+WORD_RE = re.compile(r"[a-záàâãéêíóôõúüçñ]+")
 
 
 def _clean_text_for_wordcloud(text):
@@ -203,14 +212,17 @@ def line_over_time_by_brand(df):
         return None
     with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
     over_time = with_date.groupby(["mes", "marca", "sentimiento"]).size().reset_index(name="Cantidad")
+    n_brands = over_time["marca"].nunique()
     fig = px.line(
-        over_time, x="mes", y="Cantidad", color="sentimiento", facet_col="marca", facet_col_wrap=2,
+        over_time, x="mes", y="Cantidad", color="sentimiento", facet_col="marca",
+        facet_col_wrap=1,
         category_orders={"sentimiento": SENTIMENT_ORDER},
         color_discrete_map=SENTIMENT_COLORS,
         title="Sentimiento por marca en el tiempo", markers=True,
         labels={"mes": "Mes", "sentimiento": "Sentimiento", "marca": "Marca"},
     )
     fig.update_yaxes(matches=None, showticklabels=True)
+    fig.update_layout(height=max(400, n_brands * 280))
     return fig
 
 
@@ -307,7 +319,7 @@ def heatmap_tema_red(df, tema_col="tema"):
     return fig
 
 
-TREE_WORD_RE = re.compile(r"[a-záéíóúñü]+")
+TREE_WORD_RE = re.compile(r"[a-záàâãéêíóôõúüçñ]+")
 
 
 def _tokenize_for_wordtree(text):
