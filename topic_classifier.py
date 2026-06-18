@@ -304,6 +304,22 @@ DICTIONARIES = {
                 "error", "inestabilidad", "fuera de servicio", "lento",
                 "actualización", "login", "contraseña",
             ],
+            "Educação financeira": [
+                # PT-BR
+                "educação financeira", "finanças pessoais", "orçamento",
+                "planejamento financeiro", "reserva de emergência", "poupar",
+                "poupança", "economizar", "organização financeira", "dicas",
+                "independência financeira", "renda extra", "renda passiva",
+                "controle financeiro", "planilha", "metas financeiras",
+                "consumo consciente", "endividamento", "sair das dívidas",
+                # ES
+                "educación financiera", "finanzas personales", "presupuesto",
+                "planificación financiera", "fondo de emergencia", "ahorrar",
+                "ahorro", "economizar", "organización financiera", "consejos",
+                "independencia financiera", "ingreso extra", "ingreso pasivo",
+                "control financiero", "metas financieras",
+                "consumo consciente", "salir de deudas",
+            ],
         },
     },
 }
