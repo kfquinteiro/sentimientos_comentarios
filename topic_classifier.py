@@ -147,6 +147,17 @@ DICTIONARIES = {
                 "fe", "iglesia", "evangélico", "cristiano", "religión", "oración",
                 "biblia", "tradición", "conservador",
             ],
+            "Manifestação de apoio": [
+                # PT-BR
+                "parabéns", "parabens", "apoio", "apoiamos", "excelente",
+                "orgulho", "obrigado", "obrigada", "gratidão", "mandou bem",
+                "arrasou", "bravo", "maravilhoso", "maravilhosa", "melhor",
+                "continue assim", "muito bom", "muito boa", "meus parabéns",
+                # ES
+                "felicidades", "felicitaciones", "apoyo", "apoyamos", "excelente",
+                "orgullo", "gracias", "gratitud", "bravo", "maravilloso",
+                "maravillosa", "mejor", "sigue así", "muy bien", "enhorabuena",
+            ],
             "Clã Bolsonaro": [
                 "bolsonaro", "jair bolsonaro", "flávio bolsonaro",
                 "carlos bolsonaro", "renan bolsonaro", "eduardo bolsonaro",
