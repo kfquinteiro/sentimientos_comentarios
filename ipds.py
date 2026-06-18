@@ -137,14 +137,14 @@ def calculate(posts_df, sentiment_df=None):
     result = by_brand[["marca"] + dimensions + ["ipds", "faixa"]].copy()
     rename = {
         "marca": "Marca",
-        "d_atividade": "Atividade",
-        "d_engajamento": "Engajamento",
+        "d_atividade": "Actividad",
+        "d_engajamento": "Engagement",
         "d_multicanal": "Multicanal",
         "ipds": "IPD-S",
-        "faixa": "Faixa",
+        "faixa": "Nivel",
     }
     if "d_sentimento" in result.columns:
-        rename["d_sentimento"] = "Sentimento"
+        rename["d_sentimento"] = "Sentimiento"
     result = result.rename(columns=rename)
     return result.sort_values("IPD-S", ascending=False).reset_index(drop=True)
 
@@ -191,7 +191,7 @@ def thermometer_fig(ipds_df):
         ))
 
     fig.update_layout(
-        title="Termômetro Digital do IPD-S",
+        title="Termómetro Digital del IPD-S",
         xaxis=dict(
             range=[-0.02, 1.02],
             tickmode="linear", tick0=0, dtick=0.05,
@@ -207,7 +207,7 @@ def thermometer_fig(ipds_df):
 
 def dimensions_bar_fig(ipds_df):
     """Gráfico de barras agrupadas mostrando cada dimensão por marca."""
-    dims = [c for c in ["Atividade", "Engajamento", "Multicanal", "Sentimento"]
+    dims = [c for c in ["Actividad", "Engagement", "Multicanal", "Sentimiento"]
             if c in ipds_df.columns]
     if not dims:
         return None
@@ -216,8 +216,8 @@ def dimensions_bar_fig(ipds_df):
     import plotly.express as px
     fig = px.bar(
         melted, x="Marca", y="Valor", color="Dimensión",
-        barmode="group", title="Dimensões do IPD-S por marca",
-        labels={"Valor": "Índice (0-1)", "Dimensión": "Dimensão"},
+        barmode="group", title="Dimensiones del IPD-S por marca",
+        labels={"Valor": "Índice (0-1)", "Dimensión": "Dimensión"},
     )
     fig.update_layout(yaxis=dict(range=[0, 1.05]))
     return fig
