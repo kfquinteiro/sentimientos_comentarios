@@ -118,6 +118,7 @@ TEXTS = {
     "comments_analyzed": {"pt": "Comentários analisados", "es": "Comentarios analizados"},
     "topic_analysis": {"pt": "Análise por tema", "es": "Análisis por tema"},
     "topic_dict": {"pt": "Dicionário de temas", "es": "Diccionario de temas"},
+    "dict_lang": {"pt": "Idioma dos temas", "es": "Idioma de los temas"},
     "classified": {"pt": "Classificados", "es": "Clasificados"},
     "unclassified": {"pt": "Sem tema (Otros)", "es": "Sin tema (Otros)"},
     "topics_detected": {"pt": "Temas detectados", "es": "Temas detectados"},
