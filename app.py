@@ -245,6 +245,15 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     if time_by_network_fig is not None:
         st.plotly_chart(time_by_network_fig, width="stretch")
 
+    # ── Sentiment % by month + Network sentiment % ───────────────────────
+    _mc1, _mc2 = st.columns(2)
+    _monthly_pct = charts.monthly_sentiment_pct(_time_df, lang=_lang())
+    if _monthly_pct is not None:
+        _mc1.plotly_chart(_monthly_pct, width="stretch")
+    _net_pct = charts.network_sentiment_pct(chart_df, lang=_lang())
+    if _net_pct is not None:
+        _mc2.plotly_chart(_net_pct, width="stretch")
+
     # ── Clasificación por tema ────────────────────────────────────────────
     st.subheader(_t("topic_analysis"))
     selected_dict_key = st.session_state.get("selected_dict_key", "servicios_financieros")
@@ -276,6 +285,23 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
         fig = charts.heatmap_tema_red(chart_df, lang=_lang())
     if fig is not None:
         st.plotly_chart(fig, width="stretch")
+
+    _tc1, _tc2 = st.columns(2)
+    _neg_drv = charts.negative_drivers(chart_df, lang=_lang())
+    if _neg_drv is not None:
+        _tc1.plotly_chart(_neg_drv, width="stretch")
+    _sent_pct_topic = charts.sentiment_pct_by_topic(chart_df, lang=_lang())
+    if _sent_pct_topic is not None:
+        _tc2.plotly_chart(_sent_pct_topic, width="stretch")
+
+    _topic_evo = charts.topic_evolution(chart_df, lang=_lang())
+    if _topic_evo is not None:
+        st.plotly_chart(_topic_evo, width="stretch")
+
+    if "Subtema" in df.columns:
+        _sub_fig = charts.sentiment_by_subtheme(df, lang=_lang())
+        if _sub_fig is not None:
+            st.plotly_chart(_sub_fig, width="stretch")
 
     if total_otros > 0:
         with st.expander(_t("explore_otros").format(total_otros)):
