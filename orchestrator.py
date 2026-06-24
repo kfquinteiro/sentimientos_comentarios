@@ -17,6 +17,7 @@ from exportcomments_client import ExportCommentsClient
 STATE_FILENAME = "state.json"
 FILES_DIRNAME = "files"
 STOP_FLAG_FILENAME = "stop.flag"
+PID_FILENAME = "export.pid"
 
 ACTIVE_STATUSES = {"pending", "queueing", "progress", "creating"}
 
@@ -35,6 +36,33 @@ def files_dir(run_dir):
 
 def stop_flag_path(run_dir):
     return os.path.join(run_dir, STOP_FLAG_FILENAME)
+
+
+def pid_path(run_dir):
+    return os.path.join(run_dir, PID_FILENAME)
+
+
+def kill_running_export(run_dir):
+    """Mata o processo de exportação se estiver rodando."""
+    import signal
+    pp = pid_path(run_dir)
+    if not os.path.exists(pp):
+        return
+    try:
+        with open(pp, "r") as f:
+            pid = int(f.read().strip())
+        os.kill(pid, signal.SIGTERM)
+    except (ProcessLookupError, ValueError, OSError):
+        pass
+    try:
+        os.remove(pp)
+    except OSError:
+        pass
+    flag = os.path.join(run_dir, "running.flag")
+    try:
+        os.remove(flag)
+    except OSError:
+        pass
 
 
 def load_state(run_dir):

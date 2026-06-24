@@ -769,6 +769,9 @@ with tab_export:
                     st.warning(_t("replace_warning"))
                 if st.button(_t("start_export"), type="primary"):
                     if has_existing:
+                        orc.kill_running_export(CURRENT_RUN_DIR)
+                        import time as _time
+                        _time.sleep(1)
                         files_path = orc.files_dir(CURRENT_RUN_DIR)
                         if os.path.exists(files_path):
                             shutil.rmtree(files_path)
@@ -788,16 +791,15 @@ with tab_runs:
     else:
         with st.expander(_t("reset_execution")):
             st.warning(_t("reset_warning"))
-            run_active = is_running(run_dir) or ra.is_analysis_running(run_dir)
-            if run_active:
-                st.caption(_t("cannot_delete_running"))
             confirm_reset = st.checkbox(
                 _t("reset_confirm"),
                 key="confirm_reset",
-                disabled=run_active,
             )
             with st.container(key="reset_run_button"):
-                if st.button(_t("reset_button"), disabled=not confirm_reset or run_active, type="primary"):
+                if st.button(_t("reset_button"), disabled=not confirm_reset, type="primary"):
+                    orc.kill_running_export(run_dir)
+                    import time as _time
+                    _time.sleep(1)
                     state = orc.load_state(run_dir)
                     for item in state["items"]:
                         item["status"] = "pending"
@@ -863,6 +865,7 @@ with tab_runs:
             if running:
                 if st.button(_t("stop"), key="stop_current"):
                     open(orc.stop_flag_path(run_dir), "w").close()
+                    orc.kill_running_export(run_dir)
                     st.rerun()
             elif finished < total:
                 if st.button(_t("continue"), key="resume_current"):
