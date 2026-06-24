@@ -206,16 +206,19 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     st.subheader(_t("topic_analysis"))
     selected_dict_key = st.session_state.get("selected_dict_key", "servicios_financieros")
 
-    chart_df["tema"] = tc.classify_series(
-        chart_df["comentario"].fillna(""), selected_dict_key, lang=_lang())
+    if "Tema" in df.columns:
+        chart_df["tema"] = df["Tema"]
+    else:
+        chart_df["tema"] = tc.classify_series(
+            chart_df["comentario"].fillna(""), selected_dict_key, lang=_dict_lang())
 
-    total_classified = (chart_df["tema"] != tc.otros_label(_lang())).sum()
-    total_otros = (chart_df["tema"] == tc.otros_label(_lang())).sum()
+    total_classified = (chart_df["tema"] != tc.otros_label(_dict_lang())).sum()
+    total_otros = (chart_df["tema"] == tc.otros_label(_dict_lang())).sum()
     pct_classified = round(total_classified / len(chart_df) * 100) if len(chart_df) else 0
     mc1, mc2, mc3 = st.columns(3)
     mc1.metric(_t("classified"), "{} ({}%)".format(total_classified, pct_classified))
     mc2.metric(_t("unclassified"), total_otros)
-    mc3.metric(_t("topics_detected"), chart_df[chart_df["tema"] != tc.otros_label(_lang())]["tema"].nunique())
+    mc3.metric(_t("topics_detected"), chart_df[chart_df["tema"] != tc.otros_label(_dict_lang())]["tema"].nunique())
 
     _viz_opts = [_t("viz_topics_sentiment"), _t("viz_priority"), _t("viz_topics_network")]
     tema_chart = st.radio(
@@ -233,7 +236,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
 
     if total_otros > 0:
         with st.expander(_t("explore_otros").format(total_otros)):
-            otros_df = chart_df[chart_df["tema"] == tc.otros_label(_lang())]
+            otros_df = chart_df[chart_df["tema"] == tc.otros_label(_dict_lang())]
             otros_words = charts.top_words(otros_df["comentario"].dropna(), n=30)
             if otros_words:
                 st.caption(_t("frequent_words_otros"))
@@ -344,7 +347,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     if "Tema" in df.columns:
         st.subheader(_t("wordcloud_by_topic"))
         temas = sorted(df["Tema"].dropna().unique().tolist())
-        otros = tc.otros_label(_lang())
+        otros = tc.otros_label(_dict_lang())
         temas = [t for t in temas if t != otros]
         wc_tema_cols = st.columns(2)
         for i, tema in enumerate(temas):
@@ -520,6 +523,10 @@ st.set_page_config(
 
 def _lang():
     return st.session_state.get("lang", "pt")
+
+
+def _dict_lang():
+    return st.session_state.get("dict_lang", "pt")
 
 
 def _t(key):
@@ -936,16 +943,25 @@ with tab_runs:
                         st.success(_t("brands_saved"))
 
         # ── Dicionário de temas ────────────────────────────────────────────
+        _dict_col, _lang_col = st.columns(2)
         dict_options = tc.available_dictionaries(lang=_lang())
         dict_labels = [name for _, name in dict_options]
         dict_keys = [k for k, _ in dict_options]
         _default_dict = st.session_state.get("selected_dict_key", "servicios_financieros")
         _default_idx = dict_keys.index(_default_dict) if _default_dict in dict_keys else 0
-        _sel_dict_label = st.selectbox(
+        _sel_dict_label = _dict_col.selectbox(
             _t("topic_dict"), dict_labels,
             index=_default_idx, key="run_dict_select",
         )
         st.session_state["selected_dict_key"] = dict_keys[dict_labels.index(_sel_dict_label)]
+
+        _dict_lang_options = ["🇧🇷 Português", "🇪🇸 Español"]
+        _default_dict_lang = 0 if st.session_state.get("dict_lang", "pt") == "pt" else 1
+        _sel_dict_lang = _lang_col.selectbox(
+            _t("dict_lang"), _dict_lang_options,
+            index=_default_dict_lang, key="run_dict_lang",
+        )
+        st.session_state["dict_lang"] = "pt" if _sel_dict_lang == _dict_lang_options[0] else "es"
 
         _dl_refresh = "3s" if is_running(run_dir) else None
 
@@ -1314,9 +1330,9 @@ with tab_clasif:
         sel_dict_key = st.session_state.get("selected_dict_key", "servicios_financieros")
 
         clasif_df["Tema"] = tc.classify_series(
-            clasif_df["Comentario"].fillna(""), sel_dict_key, lang=_lang())
+            clasif_df["Comentario"].fillna(""), sel_dict_key, lang=_dict_lang())
 
-        topic_list = sorted(tc.topic_names(sel_dict_key, _lang())) + [tc.otros_label(_lang())]
+        topic_list = sorted(tc.topic_names(sel_dict_key, _dict_lang())) + [tc.otros_label(_dict_lang())]
 
         clasif_df["_sent_display"] = clasif_df["Sentimiento"].map(
             _SENT_DISPLAY).fillna("○ Neutral")
