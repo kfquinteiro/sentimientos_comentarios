@@ -38,7 +38,14 @@ def stop_flag_path(run_dir):
 
 
 def load_state(run_dir):
-    with open(state_path(run_dir), "r", encoding="utf-8") as f:
+    path = state_path(run_dir)
+    for attempt in range(3):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            time.sleep(0.2)
+    with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -47,6 +54,14 @@ def save_state(run_dir, state):
     tmp_path = path + ".tmp"
     with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(state, f, ensure_ascii=False, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
+    for attempt in range(5):
+        try:
+            os.replace(tmp_path, path)
+            return
+        except OSError:
+            time.sleep(0.1)
     os.replace(tmp_path, path)
 
 
