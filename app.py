@@ -204,15 +204,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
 
     # ── Clasificación por tema ────────────────────────────────────────────
     st.subheader(_t("topic_analysis"))
-    dict_options = tc.available_dictionaries(lang=_lang())
-    dict_labels = [name for _, name in dict_options]
-    dict_keys = [k for k, _ in dict_options]
-    selected_dict_label = st.selectbox(
-        _t("topic_dict"), dict_labels,
-        key="{}_dict_select".format(key_prefix),
-    )
-    selected_dict_key = dict_keys[dict_labels.index(selected_dict_label)]
-    st.session_state["selected_dict_key"] = selected_dict_key
+    selected_dict_key = st.session_state.get("selected_dict_key", "servicios_financieros")
 
     chart_df["tema"] = tc.classify_series(
         chart_df["comentario"].fillna(""), selected_dict_key, lang=_lang())
@@ -1307,11 +1299,20 @@ with tab_clasif:
                 lambda m: _clm.get(str(m).strip().lower(), m) if pd.notna(m) else m
             )
 
-        sel_dict_key = st.session_state.get("selected_dict_key", "servicios_financieros")
+        dict_options = tc.available_dictionaries(lang=_lang())
+        dict_labels = [name for _, name in dict_options]
+        dict_keys = [k for k, _ in dict_options]
+        _default_dict = st.session_state.get("selected_dict_key", "servicios_financieros")
+        _default_idx = dict_keys.index(_default_dict) if _default_dict in dict_keys else 0
+        selected_dict_label = st.selectbox(
+            _t("topic_dict"), dict_labels,
+            index=_default_idx, key="clasif_dict_select",
+        )
+        sel_dict_key = dict_keys[dict_labels.index(selected_dict_label)]
+        st.session_state["selected_dict_key"] = sel_dict_key
 
-        if "Tema" not in clasif_df.columns:
-            clasif_df["Tema"] = tc.classify_series(
-                clasif_df["Comentario"].fillna(""), sel_dict_key, lang=_lang())
+        clasif_df["Tema"] = tc.classify_series(
+            clasif_df["Comentario"].fillna(""), sel_dict_key, lang=_lang())
 
         topic_list = sorted(tc.topic_names(sel_dict_key, _lang())) + [tc.otros_label(_lang())]
 
