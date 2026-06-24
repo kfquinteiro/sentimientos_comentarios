@@ -935,6 +935,18 @@ with tab_runs:
                         orc.save_state(run_dir, _state)
                         st.success(_t("brands_saved"))
 
+        # ── Dicionário de temas ────────────────────────────────────────────
+        dict_options = tc.available_dictionaries(lang=_lang())
+        dict_labels = [name for _, name in dict_options]
+        dict_keys = [k for k, _ in dict_options]
+        _default_dict = st.session_state.get("selected_dict_key", "servicios_financieros")
+        _default_idx = dict_keys.index(_default_dict) if _default_dict in dict_keys else 0
+        _sel_dict_label = st.selectbox(
+            _t("topic_dict"), dict_labels,
+            index=_default_idx, key="run_dict_select",
+        )
+        st.session_state["selected_dict_key"] = dict_keys[dict_labels.index(_sel_dict_label)]
+
         _dl_refresh = "3s" if is_running(run_dir) else None
 
         @st.fragment(run_every=_dl_refresh)
@@ -1299,17 +1311,7 @@ with tab_clasif:
                 lambda m: _clm.get(str(m).strip().lower(), m) if pd.notna(m) else m
             )
 
-        dict_options = tc.available_dictionaries(lang=_lang())
-        dict_labels = [name for _, name in dict_options]
-        dict_keys = [k for k, _ in dict_options]
-        _default_dict = st.session_state.get("selected_dict_key", "servicios_financieros")
-        _default_idx = dict_keys.index(_default_dict) if _default_dict in dict_keys else 0
-        selected_dict_label = st.selectbox(
-            _t("topic_dict"), dict_labels,
-            index=_default_idx, key="clasif_dict_select",
-        )
-        sel_dict_key = dict_keys[dict_labels.index(selected_dict_label)]
-        st.session_state["selected_dict_key"] = sel_dict_key
+        sel_dict_key = st.session_state.get("selected_dict_key", "servicios_financieros")
 
         clasif_df["Tema"] = tc.classify_series(
             clasif_df["Comentario"].fillna(""), sel_dict_key, lang=_lang())
