@@ -227,8 +227,8 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     chart_df = df.rename(columns={v: k for k, v in REPORT_COLUMN_LABELS.items()})
 
     col1, col2 = st.columns(2)
-    col1.plotly_chart(charts.donut_sentiment(chart_df, lang=_lang()), width="stretch")
-    col2.plotly_chart(charts.bar_by_network(chart_df, lang=_lang()), width="stretch")
+    col1.plotly_chart(charts.donut_sentiment(chart_df, lang=_lang()), use_container_width=True)
+    col2.plotly_chart(charts.bar_by_network(chart_df, lang=_lang()), use_container_width=True)
 
     _time_marcas = ["Todas"] + sorted(chart_df["marca"].dropna().unique().tolist()) if "marca" in chart_df.columns else ["Todas"]
     _time_marca = st.selectbox(
@@ -239,20 +239,20 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
 
     time_fig = charts.line_over_time(_time_df, lang=_lang())
     if time_fig is not None:
-        st.plotly_chart(time_fig, width="stretch")
+        st.plotly_chart(time_fig, use_container_width=True)
 
     time_by_network_fig = charts.line_over_time_by_network(_time_df, lang=_lang())
     if time_by_network_fig is not None:
-        st.plotly_chart(time_by_network_fig, width="stretch")
+        st.plotly_chart(time_by_network_fig, use_container_width=True)
 
     # ── Sentiment % by month + Network sentiment % ───────────────────────
     _mc1, _mc2 = st.columns(2)
     _monthly_pct = charts.monthly_sentiment_pct(_time_df, lang=_lang())
     if _monthly_pct is not None:
-        _mc1.plotly_chart(_monthly_pct, width="stretch")
+        _mc1.plotly_chart(_monthly_pct, use_container_width=True)
     _net_pct = charts.network_sentiment_pct(chart_df, lang=_lang())
     if _net_pct is not None:
-        _mc2.plotly_chart(_net_pct, width="stretch")
+        _mc2.plotly_chart(_net_pct, use_container_width=True)
 
     # ── Clasificación por tema ────────────────────────────────────────────
     st.subheader(_t("topic_analysis"))
@@ -284,24 +284,24 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     else:
         fig = charts.heatmap_tema_red(chart_df, lang=_lang())
     if fig is not None:
-        st.plotly_chart(fig, width="stretch")
+        st.plotly_chart(fig, use_container_width=True)
 
     _tc1, _tc2 = st.columns(2)
     _neg_drv = charts.negative_drivers(chart_df, lang=_lang())
     if _neg_drv is not None:
-        _tc1.plotly_chart(_neg_drv, width="stretch")
+        _tc1.plotly_chart(_neg_drv, use_container_width=True)
     _sent_pct_topic = charts.sentiment_pct_by_topic(chart_df, lang=_lang())
     if _sent_pct_topic is not None:
-        _tc2.plotly_chart(_sent_pct_topic, width="stretch")
+        _tc2.plotly_chart(_sent_pct_topic, use_container_width=True)
 
     _topic_evo = charts.topic_evolution(chart_df, lang=_lang())
     if _topic_evo is not None:
-        st.plotly_chart(_topic_evo, width="stretch")
+        st.plotly_chart(_topic_evo, use_container_width=True)
 
     if "Subtema" in df.columns:
         _sub_fig = charts.sentiment_by_subtheme(df, lang=_lang())
         if _sub_fig is not None:
-            st.plotly_chart(_sub_fig, width="stretch")
+            st.plotly_chart(_sub_fig, use_container_width=True)
 
     if total_otros > 0:
         with st.expander(_t("explore_otros").format(total_otros)):
@@ -566,7 +566,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
         if len(marcas) > 1:
             st.subheader(_t("brand_comparison"))
 
-            st.plotly_chart(charts.bar_by_brand(chart_df, lang=_lang()), width="stretch")
+            st.plotly_chart(charts.bar_by_brand(chart_df, lang=_lang()), use_container_width=True)
 
             st.markdown("**{}**".format(_t("wordcloud_by_brand")))
             sel_marca_wc = st.selectbox(
@@ -1034,7 +1034,7 @@ with tab_runs:
             )
             with analyze_col:
                 if st.button(_t("analyze_now"), key="go_analyze",
-                             type="primary", width="stretch"):
+                             type="primary", use_container_width=True):
                     st.session_state["analyze_run"] = True
 
             if st.session_state.get("analyze_run"):
@@ -1291,7 +1291,7 @@ with tab_analysis:
                 preview_cols = [c for c in ["Red", "Marca", "Autor", "Comentario",
                                             "Likes", "Sentimiento"] if c in mapped_up.columns]
                 st.dataframe(mapped_up[preview_cols].head(10), hide_index=True,
-                             width="stretch")
+                             use_container_width=True)
 
                 if st.button(_t("load_base"), type="primary", key="load_base"):
                     mapped_up.to_excel(base_path, sheet_name="Comentarios", index=False)
@@ -1595,7 +1595,7 @@ with tab_clasif:
             st.session_state["clasif_page_num"] = 1
         page_num = st.session_state["clasif_page_num"]
         _pp1, _pp2, _pp3 = st.columns(3)
-        if _pp1.button("← ", disabled=page_num <= 1, key="clasif_prev", width="stretch"):
+        if _pp1.button("← ", disabled=page_num <= 1, key="clasif_prev", use_container_width=True):
             st.session_state["clasif_page_num"] -= 1
             st.rerun()
         _pp2.markdown(
@@ -1603,7 +1603,7 @@ with tab_clasif:
                 _t("page_of_html").format(page_num, total_pages, len(filtered))),
             unsafe_allow_html=True,
         )
-        if _pp3.button(" →", disabled=page_num >= total_pages, key="clasif_next", width="stretch"):
+        if _pp3.button(" →", disabled=page_num >= total_pages, key="clasif_next", use_container_width=True):
             st.session_state["clasif_page_num"] += 1
             st.rerun()
 
@@ -1783,7 +1783,7 @@ with tab_clasif:
                     st.rerun()
 
         _pb1, _pb2, _pb3 = st.columns(3)
-        if _pb1.button("← ", disabled=page_num <= 1, key="clasif_prev2", width="stretch"):
+        if _pb1.button("← ", disabled=page_num <= 1, key="clasif_prev2", use_container_width=True):
             st.session_state["clasif_page_num"] -= 1
             st.rerun()
         _pb2.markdown(
@@ -1791,7 +1791,7 @@ with tab_clasif:
                 _t("page_of_html").format(page_num, total_pages, len(filtered))),
             unsafe_allow_html=True,
         )
-        if _pb3.button(" →", disabled=page_num >= total_pages, key="clasif_next2", width="stretch"):
+        if _pb3.button(" →", disabled=page_num >= total_pages, key="clasif_next2", use_container_width=True):
             st.session_state["clasif_page_num"] += 1
             st.rerun()
 
@@ -1904,14 +1904,14 @@ with tab_ipds:
                         ipds_result = ipds.calculate(posts_filtered, lang=_lang())
 
                         st.plotly_chart(ipds.thermometer_fig(ipds_result, lang=_lang()),
-                                        width="stretch")
+                                        use_container_width=True)
 
                         dim_fig = ipds.dimensions_bar_fig(ipds_result, lang=_lang())
                         if dim_fig is not None:
-                            st.plotly_chart(dim_fig, width="stretch")
+                            st.plotly_chart(dim_fig, use_container_width=True)
 
                         st.subheader(_t("ipds_detail"))
                         st.dataframe(ipds_result, hide_index=True,
-                                     width="stretch")
+                                     use_container_width=True)
                     except Exception as e:
                         st.error(_t("ipds_error").format(e))
