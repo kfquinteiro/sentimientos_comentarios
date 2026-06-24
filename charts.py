@@ -445,11 +445,22 @@ def topic_evolution(df, tema_col="tema", lang="pt"):
     if filtered.empty:
         return None
     filtered["mes"] = filtered["fecha_comentario"].dt.to_period("M").astype(str)
-    agg = filtered.groupby(["mes", tema_col]).size().reset_index(name=_cl("quantity", lang))
-    fig = px.area(
-        agg, x="mes", y=_cl("quantity", lang), color=tema_col,
+    agg = filtered.groupby(["mes", tema_col]).size().reset_index(name="cnt")
+    pivot = agg.pivot(index=tema_col, columns="mes", values="cnt").fillna(0)
+    pivot = pivot.loc[pivot.sum(axis=1).sort_values(ascending=True).index]
+    import plotly.graph_objects as go
+    fig = go.Figure(data=go.Heatmap(
+        z=pivot.values,
+        x=pivot.columns.tolist(),
+        y=pivot.index.tolist(),
+        colorscale=[[0, "#f0f2f6"], [1, "#182E4C"]],
+        texttemplate="%{z:.0f}",
+        hovertemplate="%{y}<br>%{x}: %{z} comentarios<extra></extra>",
+    ))
+    fig.update_layout(
         title=_cl("topic_evolution", lang),
-        labels={"mes": _cl("month", lang), tema_col: _cl("topic", lang)},
+        xaxis_title=_cl("month", lang),
+        yaxis_title=_cl("topic", lang),
     )
     return fig
 
