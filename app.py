@@ -321,7 +321,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
                         examples = examples.sort_values("likes", ascending=False)
                     st.dataframe(
                         examples[["comentario"]].head(10).rename(columns={"comentario": "Comentario"}),
-                        hide_index=True, width="stretch",
+                        hide_index=True, use_container_width=True,
                     )
 
     networks = sorted(df["Red"].dropna().unique().tolist())
@@ -341,7 +341,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
         with wc_cols[i % 2]:
             st.caption(red)
             if img is not None:
-                st.image(img, width="stretch")
+                st.image(img, use_container_width=True)
             else:
                 st.caption(_t("not_enough_text_cloud"))
 
@@ -383,7 +383,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
 
                 styled = top[show].style.map(_color_sent, subset=["Sentimiento"]) if "Sentimiento" in top.columns else top[show]
                 st.dataframe(
-                    styled, hide_index=True, width="stretch",
+                    styled, hide_index=True, use_container_width=True,
                     column_config={
                         "Link del post": st.column_config.LinkColumn("Link", display_text="🔗", width="small"),
                     },
@@ -408,7 +408,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
         with col:
             st.caption(sentimiento)
             if img is not None:
-                st.image(img, width="stretch")
+                st.image(img, use_container_width=True)
             else:
                 st.caption(_t("not_enough_text_cloud"))
 
@@ -424,7 +424,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
             with wc_tema_cols[i % 2]:
                 st.caption(tema)
                 if img is not None:
-                    st.image(img, width="stretch")
+                    st.image(img, use_container_width=True)
                 else:
                     st.caption(_t("not_enough_text_cloud"))
 
@@ -485,7 +485,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
         if "Link del post" in top_liked.columns:
             show_cols.append("Link del post")
         st.dataframe(
-            top_liked[show_cols], hide_index=True, width="stretch",
+            top_liked[show_cols], hide_index=True, use_container_width=True,
             column_config={
                 "Link del post": st.column_config.LinkColumn(
                     "Link", display_text="🔗", width="small",
@@ -526,7 +526,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
                 .sort_values(_neg_col, ascending=False)
                 .head(10)
             )
-            st.dataframe(top_neg, hide_index=True, width="stretch")
+            st.dataframe(top_neg, hide_index=True, use_container_width=True)
         else:
             st.caption(_t("no_negative_comments"))
 
@@ -541,7 +541,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
                 .sort_values(_pos_col, ascending=False)
                 .head(10)
             )
-            st.dataframe(top_pos, hide_index=True, width="stretch")
+            st.dataframe(top_pos, hide_index=True, use_container_width=True)
         else:
             st.caption(_t("no_positive_comments"))
 
@@ -557,7 +557,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
             .groupby("Mes").head(5)
             .reset_index(drop=True)
         )
-        st.dataframe(top_posts, hide_index=True, width="stretch")
+        st.dataframe(top_posts, hide_index=True, use_container_width=True)
     else:
         st.caption(_t("no_pub_dates"))
 
@@ -575,7 +575,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
             marca_texts = df[df["Marca"] == sel_marca_wc]["Comentario"].dropna()
             img = charts.wordcloud_image(marca_texts, extra_stopwords=extra_sw) if not marca_texts.empty else None
             if img is not None:
-                st.image(img, width="stretch")
+                st.image(img, use_container_width=True)
             else:
                 st.caption(_t("not_enough_text_cloud"))
 
@@ -830,8 +830,8 @@ with tab_export:
                 if "network" in links_df.columns:
                     counts = (links_df["network"].value_counts()
                               .rename_axis("Red").reset_index(name=_t("network_count_column")))
-                    st.dataframe(counts, hide_index=True, width="stretch")
-                st.dataframe(links_df.head(20), width="stretch")
+                    st.dataframe(counts, hide_index=True, use_container_width=True)
+                st.dataframe(links_df.head(20), use_container_width=True)
 
                 has_existing = os.path.isfile(orc.state_path(CURRENT_RUN_DIR))
                 if has_existing:
@@ -908,7 +908,7 @@ with tab_runs:
 
             display_counts = pd.Series([display_status(item) for item in items]).value_counts()
             status_table = display_counts.rename_axis(_t("col_label_status")).reset_index(name=_t("network_count_column"))
-            st.dataframe(status_table, hide_index=True, width="stretch")
+            st.dataframe(status_table, hide_index=True, use_container_width=True)
 
             if running:
                 if st.button(_t("stop"), key="stop_current"):
@@ -961,7 +961,7 @@ with tab_runs:
                     totals_row[recolectados_col] = pd.to_numeric(df[recolectados_col], errors="coerce").sum()
                 df = pd.concat([df, pd.DataFrame([totals_row])], ignore_index=True)
 
-                st.dataframe(df, width="stretch")
+                st.dataframe(df, use_container_width=True)
 
         render_run_status(run_dir)
 
