@@ -6,8 +6,11 @@ import re
 import shutil
 import subprocess
 import sys
+import textwrap
 import zipfile
 from datetime import datetime
+
+from PIL import Image, ImageDraw, ImageFont
 
 import pandas as pd
 import streamlit as st
@@ -1262,6 +1265,97 @@ _SENT_DISPLAY = {"Positivo": "🟢 Positivo", "Neutral": "🟡 Neutral", "Negati
 _SENT_FROM_DISPLAY = {v: k for k, v in _SENT_DISPLAY.items()}
 _SENT_OPTIONS_DISPLAY = ["🟢 Positivo", "🟡 Neutral", "🔴 Negativo"]
 
+_NETWORK_ICONS = {
+    "INSTAGRAM": "📷", "FACEBOOK": "📘", "TWITTER": "🐦", "X": "🐦",
+    "YOUTUBE": "▶️", "TIKTOK": "🎵", "LINKEDIN": "💼",
+}
+_SENT_COLORS = {"Positivo": "#2ecc71", "Neutral": "#95a5a6", "Negativo": "#e74c3c"}
+_SENT_BG = {"Positivo": "#eafaf1", "Neutral": "#f2f3f4", "Negativo": "#fdedec"}
+
+
+def _generate_card_png(row):
+    W, PAD = 700, 20
+    sent = str(row.get("Sentimiento", ""))
+    accent = _SENT_COLORS.get(sent, "#95a5a6")
+    bg = _SENT_BG.get(sent, "#f2f3f4")
+
+    try:
+        font = ImageFont.truetype("arial.ttf", 15)
+        font_sm = ImageFont.truetype("arial.ttf", 12)
+        font_b = ImageFont.truetype("arialbd.ttf", 16)
+        font_title = ImageFont.truetype("arialbd.ttf", 18)
+    except OSError:
+        font = ImageFont.load_default()
+        font_sm = font
+        font_b = font
+        font_title = font
+
+    comment = str(row.get("Comentario", ""))
+    lines = textwrap.wrap(comment, width=75) or [""]
+    text_h = len(lines) * 22
+    H = 180 + text_h
+
+    img = Image.new("RGB", (W, H), "white")
+    draw = ImageDraw.Draw(img)
+
+    draw.rectangle([0, 0, W, 50], fill=accent)
+    author = str(row.get("Autor", ""))
+    network = str(row.get("Red", ""))
+    icon = _NETWORK_ICONS.get(network.upper(), "🌐")
+    draw.text((PAD, 14), author, fill="white", font=font_title)
+    net_label = "{} {}".format(icon, network)
+    net_w = draw.textlength(net_label, font=font_b)
+    draw.text((W - PAD - net_w, 16), net_label, fill="white", font=font_b)
+
+    sent_label = sent
+    sw = draw.textlength(sent_label, font=font_b)
+    sx = W - PAD - sw - 10
+    draw.rounded_rectangle([sx - 6, 58, sx + sw + 6, 80], radius=4, fill=bg, outline=accent)
+    draw.text((sx, 59), sent_label, fill=accent, font=font_b)
+
+    y = 90
+    for line in lines:
+        draw.text((PAD, y), line, fill="#222", font=font)
+        y += 22
+
+    y += 12
+    draw.line([(PAD, y), (W - PAD, y)], fill="#ddd")
+    y += 10
+
+    meta_parts = []
+    post_date = row.get("Fecha de publicación")
+    if pd.notna(post_date):
+        meta_parts.append("Post: {}".format(str(post_date)[:16]))
+    comm_date = row.get("Fecha del comentario")
+    if pd.notna(comm_date):
+        meta_parts.append("Comentario: {}".format(str(comm_date)[:16]))
+    likes = row.get("Likes")
+    if pd.notna(likes) and str(likes) != "None":
+        meta_parts.append("Likes: {}".format(likes))
+    if meta_parts:
+        draw.text((PAD, y), "  ·  ".join(meta_parts), fill="#888", font=font_sm)
+        y += 20
+
+    tags = []
+    tema = row.get("Tema")
+    if pd.notna(tema) and str(tema).strip():
+        tags.append(str(tema))
+    subtema = row.get("Subtema")
+    if pd.notna(subtema) and str(subtema).strip():
+        tags.append(str(subtema))
+    if tags:
+        tx = PAD
+        for tag in tags:
+            tw = draw.textlength(tag, font=font_sm)
+            draw.rounded_rectangle([tx, y, tx + tw + 12, y + 20], radius=3,
+                                   fill="#eef2f7", outline="#ccd")
+            draw.text((tx + 6, y + 3), tag, fill="#444", font=font_sm)
+            tx += tw + 20
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
 
 def _resolve_clasif_path():
     """Retorna (path, brand_mapping) do arquivo ativo para edição."""
@@ -1388,50 +1482,94 @@ with tab_clasif:
         start = (page_num - 1) * page_size
         page_slice = filtered.iloc[start:start + page_size].copy()
 
-        show = [c for c in ["Red", "Marca", "Autor", "Fecha de publicación",
-                            "Fecha del comentario", "Comentario", "Likes",
-                            "_sent_display", "Tema", "Subtema", "Link del post"]
-                if c in page_slice.columns]
-        locked = [c for c in show if c not in ("_sent_display", "Tema", "Subtema")]
+        # ── Cards ──────────────────────────────────────────────────────────
+        _card_changed = False
+        for _ci, (_idx, _row) in enumerate(page_slice.iterrows()):
+            _net = str(_row.get("Red", ""))
+            _icon = _NETWORK_ICONS.get(_net.upper(), "🌐")
+            _autor = str(_row.get("Autor", ""))
+            _sent_cur = str(_row.get("Sentimiento", "Neutral"))
+            _sent_disp = _SENT_DISPLAY.get(_sent_cur, "🟡 Neutral")
+            _comment = str(_row.get("Comentario", ""))
+            _likes = _row.get("Likes")
+            _post_date = _row.get("Fecha de publicación")
+            _comm_date = _row.get("Fecha del comentario")
+            _link = _row.get("Link del post")
+            _tema_cur = str(_row.get("Tema", ""))
+            _subtema_cur = str(_row.get("Subtema", "")) if pd.notna(_row.get("Subtema")) else ""
 
-        with st.form("clasif_form"):
-            edited = st.data_editor(
-                page_slice[show],
-                column_config={
-                    "Red": st.column_config.TextColumn(_t("col_network")),
-                    "_sent_display": st.column_config.SelectboxColumn(
-                        _t("sentiment_label"),
-                        options=_SENT_OPTIONS_DISPLAY,
-                        required=True,
-                    ),
-                    "Tema": st.column_config.SelectboxColumn(
-                        _t("topic_label"),
-                        options=topic_list,
-                        required=True,
-                    ),
-                    "Link del post": st.column_config.LinkColumn(
-                        "Link", display_text="🔗", width="small",
-                    ),
-                },
-                disabled=locked,
-                hide_index=True,
-                use_container_width=True,
-                height=min(page_size * 38 + 40, 3850),
-            )
-            if st.form_submit_button(_t("save_changes"), type="primary"):
-                edited_sent = edited["_sent_display"].map(_SENT_FROM_DISPLAY)
-                clasif_df.loc[edited.index, "Sentimiento"] = edited_sent.values
-                clasif_df.loc[edited.index, "Tema"] = edited["Tema"].values
-                if "Subtema" in edited.columns:
-                    clasif_df.loc[edited.index, "Subtema"] = edited["Subtema"].values
+            with st.container(border=True):
+                _h1, _h2, _h3 = st.columns([3, 2, 2])
+                _h1.markdown("**{}**".format(_autor))
+                _h2.markdown("{} **{}**".format(_icon, _net))
+                _new_sent = _h3.selectbox(
+                    _t("sentiment_label"),
+                    _SENT_OPTIONS_DISPLAY,
+                    index=_SENT_OPTIONS_DISPLAY.index(_sent_disp) if _sent_disp in _SENT_OPTIONS_DISPLAY else 1,
+                    key="card_sent_{}_{}".format(page_num, _ci),
+                    label_visibility="collapsed",
+                )
+
+                st.markdown(
+                    "<div style='padding:8px 0;font-size:0.95rem'>{}</div>".format(
+                        _comment.replace("<", "&lt;").replace("\n", "<br>")),
+                    unsafe_allow_html=True,
+                )
+
+                _m1, _m2, _m3 = st.columns(3)
+                if pd.notna(_post_date):
+                    _m1.caption("📅 {}: {}".format(_t("post_date_short"), str(_post_date)[:16]))
+                if pd.notna(_comm_date):
+                    _m2.caption("💬 {}: {}".format(_t("comment_date_short"), str(_comm_date)[:16]))
+                if pd.notna(_likes) and str(_likes) != "None":
+                    _m3.caption("👍 {}".format(_likes))
+
+                _t1, _t2 = st.columns(2)
+                _new_tema = _t1.selectbox(
+                    _t("topic_label"),
+                    topic_list,
+                    index=topic_list.index(_tema_cur) if _tema_cur in topic_list else 0,
+                    key="card_tema_{}_{}".format(page_num, _ci),
+                )
+                _new_subtema = _t2.text_input(
+                    _t("subtopic_label"),
+                    value=_subtema_cur,
+                    key="card_sub_{}_{}".format(page_num, _ci),
+                )
+
+                _a1, _a2, _a3 = st.columns([2, 2, 6])
+                if _link and pd.notna(_link):
+                    _a1.link_button("🔗 " + _t("open_original"), str(_link))
+                _png_bytes = _generate_card_png(_row)
+                _a2.download_button(
+                    "📥 " + _t("download_png"),
+                    data=_png_bytes,
+                    file_name="mencion_{}_{}.png".format(_autor[:20], _ci),
+                    mime="image/png",
+                    key="card_png_{}_{}".format(page_num, _ci),
+                )
+
+                _real_sent = _SENT_FROM_DISPLAY.get(_new_sent, "Neutral")
+                if _real_sent != _sent_cur:
+                    clasif_df.loc[_idx, "Sentimiento"] = _real_sent
+                    _card_changed = True
+                if _new_tema != _tema_cur:
+                    clasif_df.loc[_idx, "Tema"] = _new_tema
+                    _card_changed = True
+                if _new_subtema != _subtema_cur:
+                    clasif_df.loc[_idx, "Subtema"] = _new_subtema
+                    _card_changed = True
+
+        if _card_changed:
+            if st.button(_t("save_changes"), type="primary", key="save_cards"):
                 save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
                 clasif_df[save_cols].to_excel(
                     clasif_path, sheet_name="Comentarios", index=False)
                 st.success(_t("changes_saved"))
                 st.rerun()
 
-        _ps_sel = st.pills(_t("comments_per_page"), [25, 50, 100],
-                           default=st.session_state.get("clasif_ps", 50),
+        _ps_sel = st.pills(_t("comments_per_page"), [10, 25, 50],
+                           default=st.session_state.get("clasif_ps", 10),
                            key="clasif_ps_pills")
         if _ps_sel and _ps_sel != st.session_state.get("clasif_ps"):
             st.session_state["clasif_ps"] = _ps_sel

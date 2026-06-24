@@ -172,6 +172,11 @@ TEXTS = {
     "changes_saved": {"pt": "Alterações salvas.", "es": "Cambios guardados."},
     "download_corrected": {"pt": "Baixar base corrigida (XLSX)", "es": "Descargar base corregida (XLSX)"},
     "comments_per_page": {"pt": "Comentários por página", "es": "Comentarios por página"},
+    "open_original": {"pt": "Abrir original", "es": "Abrir original"},
+    "download_png": {"pt": "Baixar PNG", "es": "Descargar PNG"},
+    "post_date_short": {"pt": "Post", "es": "Post"},
+    "comment_date_short": {"pt": "Comentário", "es": "Comentario"},
+    "subtopic_label": {"pt": "Subtema", "es": "Subtema"},
     "no_analysis_completed": {
         "pt": "Esta execução não tem análise concluída. Gere a análise na aba Análise primeiro.",
         "es": "Esta ejecución no tiene análisis completado. Genera el análisis en la pestaña Análisis primero.",
