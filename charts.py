@@ -498,6 +498,10 @@ def sentiment_by_subtheme(df, lang="pt"):
         return None
     sub_col = "Subtema" if "Subtema" in df.columns else "subtema"
     exploded = df.dropna(subset=[sub_col]).copy()
+    exploded[sub_col] = exploded[sub_col].astype(str)
+    exploded = exploded[exploded[sub_col].str.strip() != ""]
+    if exploded.empty:
+        return None
     exploded[sub_col] = exploded[sub_col].str.split(",")
     exploded = exploded.explode(sub_col)
     exploded[sub_col] = exploded[sub_col].str.strip()
