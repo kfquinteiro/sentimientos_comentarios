@@ -1497,86 +1497,106 @@ with tab_clasif:
             _link = _row.get("Link del post")
             _tema_cur = str(_row.get("Tema", ""))
             _subtema_cur = str(_row.get("Subtema", "")) if pd.notna(_row.get("Subtema")) else ""
+            _sub_tags = [s.strip() for s in _subtema_cur.split(",") if s.strip()]
+            _sent_color = _SENT_COLORS.get(_sent_cur, "#95a5a6")
+            _sent_bg = _SENT_BG.get(_sent_cur, "#f2f3f4")
+            _likes_str = str(_likes) if pd.notna(_likes) and str(_likes) != "None" else ""
+            _post_str = str(_post_date)[:16] if pd.notna(_post_date) else ""
+            _comm_str = str(_comm_date)[:16] if pd.notna(_comm_date) else ""
+
+            _tags_pills = ""
+            if _tema_cur:
+                _tags_pills += (
+                    '<span style="background:#f8d7e3;color:#a73253;border:1px solid #e8a0b8;'
+                    'border-radius:14px;padding:4px 14px;margin-right:6px;'
+                    'font-size:0.82rem;font-weight:600;letter-spacing:.3px">'
+                    '{}</span>'.format(_tema_cur)
+                )
+            for _st_tag in _sub_tags:
+                _tags_pills += (
+                    '<span style="background:#d4f4f8;color:#0a7e8c;border:1px solid #a0dce6;'
+                    'border-radius:14px;padding:4px 14px;margin-right:6px;'
+                    'font-size:0.82rem;font-weight:600;letter-spacing:.3px">'
+                    '{}</span>'.format(_st_tag)
+                )
+
+            _meta_parts = []
+            if _post_str:
+                _meta_parts.append("📅 Post: {}".format(_post_str))
+            if _comm_str:
+                _meta_parts.append("💬 {}".format(_comm_str))
+            if _likes_str:
+                _meta_parts.append("👍 {}".format(_likes_str))
+            _meta_line = "&nbsp;&nbsp;·&nbsp;&nbsp;".join(_meta_parts)
+
+            _card_html = """
+            <div style="border-left:4px solid {accent};padding:0 0 4px">
+              <div style="display:flex;align-items:center;justify-content:space-between;
+                          padding:0 0 6px">
+                <div>
+                  <span style="font-size:1.05rem;font-weight:700;color:#182E4C">{author}</span>
+                  <span style="color:#888;margin-left:12px">{icon} {network}</span>
+                </div>
+                <span style="background:{sent_bg};color:{accent};border:1px solid {accent};
+                       border-radius:14px;padding:4px 14px;font-size:0.85rem;font-weight:700">
+                  {sentiment}
+                </span>
+              </div>
+              <div style="font-size:0.95rem;line-height:1.5;color:#333;padding:6px 0 10px;
+                          white-space:pre-wrap">{comment}</div>
+              <div style="padding:2px 0 8px">{tags}</div>
+              <div style="font-size:0.78rem;color:#999;padding:2px 0">{meta}</div>
+            </div>
+            """.format(
+                accent=_sent_color, sent_bg=_sent_bg,
+                author=_autor, icon=_icon, network=_net,
+                sentiment=_sent_cur,
+                comment=_comment.replace("<", "&lt;"),
+                tags=_tags_pills, meta=_meta_line,
+            )
 
             with st.container(border=True):
-                _h1, _h2, _h3 = st.columns([3, 2, 2])
-                _h1.markdown("**{}**".format(_autor))
-                _h2.markdown("{} **{}**".format(_icon, _net))
-                _new_sent = _h3.selectbox(
+                st.markdown(_card_html, unsafe_allow_html=True)
+
+                _e1, _e2, _e3, _e4 = st.columns([2, 2, 2, 1])
+                _new_sent = _e1.selectbox(
                     _t("sentiment_label"),
                     _SENT_OPTIONS_DISPLAY,
                     index=_SENT_OPTIONS_DISPLAY.index(_sent_disp) if _sent_disp in _SENT_OPTIONS_DISPLAY else 1,
                     key="card_sent_{}_{}".format(page_num, _ci),
                     label_visibility="collapsed",
                 )
-
-                st.markdown(
-                    "<div style='padding:8px 0;font-size:0.95rem'>{}</div>".format(
-                        _comment.replace("<", "&lt;").replace("\n", "<br>")),
-                    unsafe_allow_html=True,
-                )
-
-                # ── Tags visuais (tema + subtemas) ──
-                _sub_tags = [s.strip() for s in _subtema_cur.split(",") if s.strip()]
-                _tags_html = (
-                    '<span style="display:inline-block;background:#f8d7e3;color:#a73253;'
-                    'border:1px solid #e8a0b8;border-radius:12px;padding:3px 12px;'
-                    'margin:2px 4px 2px 0;font-size:0.85rem;font-weight:600">'
-                    '{}</span>'.format(_tema_cur)
-                    if _tema_cur else ""
-                )
-                for _st_tag in _sub_tags:
-                    _tags_html += (
-                        '<span style="display:inline-block;background:#d4f4f8;color:#0a7e8c;'
-                        'border:1px solid #a0dce6;border-radius:12px;padding:3px 12px;'
-                        'margin:2px 4px 2px 0;font-size:0.85rem;font-weight:600">'
-                        '{}</span>'.format(_st_tag)
-                    )
-                if _tags_html:
-                    st.markdown(
-                        '<div style="padding:4px 0 8px">{}</div>'.format(_tags_html),
-                        unsafe_allow_html=True,
-                    )
-
-                # ── Metadados ──
-                _m1, _m2, _m3 = st.columns(3)
-                if pd.notna(_post_date):
-                    _m1.caption("📅 {}: {}".format(_t("post_date_short"), str(_post_date)[:16]))
-                if pd.notna(_comm_date):
-                    _m2.caption("💬 {}: {}".format(_t("comment_date_short"), str(_comm_date)[:16]))
-                if pd.notna(_likes) and str(_likes) != "None":
-                    _m3.caption("👍 {}".format(_likes))
-
-                # ── Edição ──
-                _e1, _e2, _e3 = st.columns([3, 3, 1])
-                _new_tema = _e1.selectbox(
+                _tema_opts = ["—"] + topic_list
+                _tema_idx = _tema_opts.index(_tema_cur) if _tema_cur in _tema_opts else 0
+                _new_tema_sel = _e2.selectbox(
                     _t("topic_label"),
-                    topic_list,
-                    index=topic_list.index(_tema_cur) if _tema_cur in topic_list else 0,
+                    _tema_opts,
+                    index=_tema_idx,
                     key="card_tema_{}_{}".format(page_num, _ci),
+                    label_visibility="collapsed",
                 )
-                _new_sub_input = _e2.text_input(
+                _new_tema = "" if _new_tema_sel == "—" else _new_tema_sel
+                _new_sub_input = _e3.text_input(
                     _t("subtopic_label"),
                     value="",
                     key="card_sub_{}_{}".format(page_num, _ci),
                     placeholder="+ subtema ↵",
+                    label_visibility="collapsed",
                 )
                 if _new_sub_input.strip():
                     _sub_tags.append(_new_sub_input.strip())
-
                 if _sub_tags:
                     _remove_opts = ["🗑️"] + _sub_tags
-                    _to_remove = _e3.selectbox(
+                    _to_remove = _e4.selectbox(
                         "rem", _remove_opts,
                         key="card_rm_{}_{}".format(page_num, _ci),
                         label_visibility="collapsed",
                     )
                     if _to_remove != "🗑️":
                         _sub_tags = [s for s in _sub_tags if s != _to_remove]
-
                 _new_subtema = ", ".join(_sub_tags) if _sub_tags else ""
 
-                _a1, _a2, _a3 = st.columns([2, 2, 6])
+                _a1, _a2, _a3 = st.columns([1, 1, 5])
                 if _link and pd.notna(_link):
                     _a1.link_button("🔗 " + _t("open_original"), str(_link))
                 _png_bytes = _generate_card_png(_row)
