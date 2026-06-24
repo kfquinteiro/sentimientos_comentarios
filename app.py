@@ -1671,7 +1671,16 @@ with tab_clasif:
             )
 
             with st.container(border=True):
-                st.markdown(_card_html, unsafe_allow_html=True)
+                _png_bytes = _generate_card_png(_row)
+                _top1, _top2 = st.columns([6, 1])
+                _top1.markdown(_card_html, unsafe_allow_html=True)
+                _top2.download_button(
+                    "📥",
+                    data=_png_bytes,
+                    file_name="mencion_{}_{}.png".format(_autor[:20], _ci),
+                    mime="image/png",
+                    key="card_png_{}_{}".format(page_num, _ci),
+                )
 
                 st.markdown(
                     '<div style="border-top:1px solid #eee;margin:4px 0 8px"></div>',
@@ -1731,7 +1740,6 @@ with tab_clasif:
                             _sub_tags = [s for s in _sub_tags if s != _to_remove]
                 _new_subtema = ", ".join(_sub_tags) if _sub_tags else ""
 
-                _png_bytes = _generate_card_png(_row)
                 _real_sent = _SENT_FROM_DISPLAY.get(_new_sent, "Neutral")
                 _changed = (
                     _real_sent != _sent_cur
@@ -1739,35 +1747,35 @@ with tab_clasif:
                     or _new_subtema != _subtema_cur
                 )
 
-                _n_btns = 1 + (1 if _link and pd.notna(_link) else 0) + (1 if _changed else 0)
-                _btn_cols = st.columns(_n_btns)
-                _bi = 0
                 if _link and pd.notna(_link):
-                    _btn_cols[_bi].link_button("🔗 " + _t("open_original"), str(_link))
-                    _bi += 1
-                _btn_cols[_bi].download_button(
-                    "📥 " + _t("download_png"),
-                    data=_png_bytes,
-                    file_name="mencion_{}_{}.png".format(_autor[:20], _ci),
-                    mime="image/png",
-                    key="card_png_{}_{}".format(page_num, _ci),
-                )
-                _bi += 1
+                    st.link_button("🔗 " + _t("open_original"), str(_link))
+
                 if _changed:
-                    if _btn_cols[_bi].button(
-                        "💾 " + _t("save_changes"),
-                        key="card_save_{}_{}".format(page_num, _ci),
-                        type="primary",
-                    ):
-                        clasif_df.loc[_idx, "Sentimiento"] = _real_sent
-                        clasif_df.loc[_idx, "Tema"] = _new_tema
-                        clasif_df.loc[_idx, "Subtema"] = _new_subtema
-                        if _new_tema and _sub_tags:
-                            _add_subtemas_to_dict(sel_dict_key, _new_tema, _sub_tags)
-                        save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
-                        clasif_df[save_cols].to_excel(
-                            clasif_path, sheet_name="Comentarios", index=False)
-                        st.rerun()
+                    clasif_df.loc[_idx, "Sentimiento"] = _real_sent
+                    clasif_df.loc[_idx, "Tema"] = _new_tema
+                    clasif_df.loc[_idx, "Subtema"] = _new_subtema
+                    if _new_tema and _sub_tags:
+                        _add_subtemas_to_dict(sel_dict_key, _new_tema, _sub_tags)
+                    save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
+                    clasif_df[save_cols].to_excel(
+                        clasif_path, sheet_name="Comentarios", index=False)
+                    st.rerun()
+
+        _pg2_prev, _pg2_info, _pg2_next = st.columns([1, 8, 1])
+        if _pg2_prev.button("←", disabled=page_num <= 1, key="clasif_prev2"):
+            st.session_state["clasif_page_num"] -= 1
+            st.rerun()
+        with _pg2_next:
+            st.markdown("<div style='display:flex;justify-content:flex-end'>", unsafe_allow_html=True)
+            if st.button("→", disabled=page_num >= total_pages, key="clasif_next2"):
+                st.session_state["clasif_page_num"] += 1
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+        _pg2_info.markdown(
+            "<div style='text-align:center;padding-top:8px'>"
+            "{}</div>".format(_t("page_of_html").format(page_num, total_pages, len(filtered))),
+            unsafe_allow_html=True,
+        )
 
         _ps_sel = st.pills(_t("comments_per_page"), [10, 25, 50],
                            default=st.session_state.get("clasif_ps", 10),
