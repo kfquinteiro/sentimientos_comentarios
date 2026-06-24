@@ -1631,7 +1631,7 @@ with tab_clasif:
                     unsafe_allow_html=True,
                 )
 
-                _e1, _e2, _e3, _e4 = st.columns([3, 3, 3, 1])
+                _e1, _e2, _e3, _e4 = st.columns(4)
                 _new_sent = _e1.selectbox(
                     _t("sentiment_label"),
                     _SENT_OPTIONS_DISPLAY,
@@ -1660,12 +1660,20 @@ with tab_clasif:
                     _del_items.append(_new_tema)
                 _del_items.extend(_sub_tags)
                 if _del_items:
+                    _rm_key = "card_rm_{}_{}".format(page_num, _ci)
+                    _e4.markdown(
+                        '<style>'
+                        '[data-testid="stSelectbox"]:has(#{})'
+                        ' > div > div {{background:#e74c3c;color:white;border:none;border-radius:12px}}'
+                        '[data-testid="stSelectbox"]:has(#{}) svg {{fill:white}}'
+                        '</style>'.format(_rm_key, _rm_key),
+                        unsafe_allow_html=True,
+                    )
                     _remove_opts = [_t("remove_tag")] + _del_items
                     _to_remove = _e4.selectbox(
-                        "×",
+                        _t("remove_tag"),
                         _remove_opts,
-                        key="card_rm_{}_{}".format(page_num, _ci),
-                        label_visibility="collapsed",
+                        key=_rm_key,
                     )
                     if _to_remove != _t("remove_tag"):
                         if _to_remove == _new_tema:
@@ -1687,21 +1695,24 @@ with tab_clasif:
                 )
 
                 _real_sent = _SENT_FROM_DISPLAY.get(_new_sent, "Neutral")
-                _changed = False
-                if _real_sent != _sent_cur:
-                    clasif_df.loc[_idx, "Sentimiento"] = _real_sent
-                    _changed = True
-                if _new_tema != _tema_cur:
-                    clasif_df.loc[_idx, "Tema"] = _new_tema
-                    _changed = True
-                if _new_subtema != _subtema_cur:
-                    clasif_df.loc[_idx, "Subtema"] = _new_subtema
-                    _changed = True
+                _changed = (
+                    _real_sent != _sent_cur
+                    or _new_tema != _tema_cur
+                    or _new_subtema != _subtema_cur
+                )
                 if _changed:
-                    save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
-                    clasif_df[save_cols].to_excel(
-                        clasif_path, sheet_name="Comentarios", index=False)
-                    st.rerun()
+                    if _b3.button(
+                        "💾 " + _t("save_changes"),
+                        key="card_save_{}_{}".format(page_num, _ci),
+                        type="primary",
+                    ):
+                        clasif_df.loc[_idx, "Sentimiento"] = _real_sent
+                        clasif_df.loc[_idx, "Tema"] = _new_tema
+                        clasif_df.loc[_idx, "Subtema"] = _new_subtema
+                        save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
+                        clasif_df[save_cols].to_excel(
+                            clasif_path, sheet_name="Comentarios", index=False)
+                        st.rerun()
 
         _ps_sel = st.pills(_t("comments_per_page"), [10, 25, 50],
                            default=st.session_state.get("clasif_ps", 10),
