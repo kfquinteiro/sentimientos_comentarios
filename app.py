@@ -1566,25 +1566,19 @@ with tab_clasif:
         total_pages = max(1, -(-len(filtered) // page_size))
         if st.session_state["clasif_page_num"] > total_pages:
             st.session_state["clasif_page_num"] = 1
-        _pg_prev, _pg_info, _pg_next = st.columns([1, 8, 1])
-        if _pg_prev.button("←", disabled=st.session_state["clasif_page_num"] <= 1,
-                           key="clasif_prev"):
+        page_num = st.session_state["clasif_page_num"]
+        _pp1, _pp2, _pp3 = st.columns(3)
+        if _pp1.button("← ", disabled=page_num <= 1, key="clasif_prev", use_container_width=True):
             st.session_state["clasif_page_num"] -= 1
             st.rerun()
-        with _pg_next:
-            st.markdown("<div style='display:flex;justify-content:flex-end'>", unsafe_allow_html=True)
-            if st.button("→", disabled=st.session_state["clasif_page_num"] >= total_pages,
-                         key="clasif_next"):
-                st.session_state["clasif_page_num"] += 1
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-        page_num = st.session_state["clasif_page_num"]
-        _pg_info.markdown(
-            "<div style='text-align:center;padding-top:8px'>"
-            "{}</div>".format(_t("page_of_html").format(
-                page_num, total_pages, len(filtered))),
+        _pp2.markdown(
+            "<div style='text-align:center;padding-top:8px'>{}</div>".format(
+                _t("page_of_html").format(page_num, total_pages, len(filtered))),
             unsafe_allow_html=True,
         )
+        if _pp3.button(" →", disabled=page_num >= total_pages, key="clasif_next", use_container_width=True):
+            st.session_state["clasif_page_num"] += 1
+            st.rerun()
 
         start = (page_num - 1) * page_size
         page_slice = filtered.iloc[start:start + page_size].copy()
@@ -1762,21 +1756,18 @@ with tab_clasif:
                         clasif_path, sheet_name="Comentarios", index=False)
                     st.rerun()
 
-        _pg2_prev, _pg2_info, _pg2_next = st.columns([1, 8, 1])
-        if _pg2_prev.button("←", disabled=page_num <= 1, key="clasif_prev2"):
+        _pb1, _pb2, _pb3 = st.columns(3)
+        if _pb1.button("← ", disabled=page_num <= 1, key="clasif_prev2", use_container_width=True):
             st.session_state["clasif_page_num"] -= 1
             st.rerun()
-        with _pg2_next:
-            st.markdown("<div style='display:flex;justify-content:flex-end'>", unsafe_allow_html=True)
-            if st.button("→", disabled=page_num >= total_pages, key="clasif_next2"):
-                st.session_state["clasif_page_num"] += 1
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-        _pg2_info.markdown(
-            "<div style='text-align:center;padding-top:8px'>"
-            "{}</div>".format(_t("page_of_html").format(page_num, total_pages, len(filtered))),
+        _pb2.markdown(
+            "<div style='text-align:center;padding-top:8px'>{}</div>".format(
+                _t("page_of_html").format(page_num, total_pages, len(filtered))),
             unsafe_allow_html=True,
         )
+        if _pb3.button(" →", disabled=page_num >= total_pages, key="clasif_next2", use_container_width=True):
+            st.session_state["clasif_page_num"] += 1
+            st.rerun()
 
         _ps_sel = st.pills(_t("comments_per_page"), [10, 25, 50],
                            default=st.session_state.get("clasif_ps", 10),
