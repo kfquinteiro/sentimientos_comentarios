@@ -1682,7 +1682,7 @@ with tab_clasif:
                 _new_subtema = ", ".join(_sub_tags) if _sub_tags else ""
 
                 _png_bytes = _generate_card_png(_row)
-                _b1, _b2, _b3 = st.columns([2, 2, 8])
+                _b1, _b2, _b3 = st.columns([1, 1, 4], gap="small")
                 if _link and pd.notna(_link):
                     _b1.link_button("🔗 " + _t("open_original"), str(_link))
                 _b2.download_button(
