@@ -57,8 +57,8 @@ TEXTS = {
     },
     "reset_execution": {"pt": "Resetar esta execução", "es": "Resetear esta ejecución"},
     "reset_warning": {
-        "pt": "Isso vai zerar todos os status para 'pendente', apagar arquivos baixados e permitir coletar novamente.",
-        "es": "Esto reiniciará todos los estados a 'pendiente', borrará archivos descargados y permitirá recolectar nuevamente.",
+        "pt": "Isso vai apagar toda a execução. Você precisará subir a planilha novamente na aba 'Nova exportação'.",
+        "es": "Esto borrará toda la ejecución. Deberá subir la hoja de cálculo nuevamente en la pestaña 'Nueva exportación'.",
     },
     "reset_confirm": {"pt": "Sim, quero resetar esta execução", "es": "Sí, quiero resetear esta ejecución"},
     "reset_button": {"pt": "Resetar execução", "es": "Resetear ejecución"},
