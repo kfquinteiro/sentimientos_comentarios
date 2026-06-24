@@ -1269,58 +1269,96 @@ _NETWORK_ICONS = {
     "INSTAGRAM": "📷", "FACEBOOK": "📘", "TWITTER": "🐦", "X": "🐦",
     "YOUTUBE": "▶️", "TIKTOK": "🎵", "LINKEDIN": "💼",
 }
+_NETWORK_HTML = {
+    "INSTAGRAM": '<span style="display:inline-flex;align-items:center;gap:6px">'
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><defs>'
+        '<linearGradient id="ig" x1="0" y1="24" x2="24" y2="0">'
+        '<stop stop-color="#FFC107"/><stop offset=".5" stop-color="#F44336"/>'
+        '<stop offset="1" stop-color="#9C27B0"/></linearGradient></defs>'
+        '<rect x="2" y="2" width="20" height="20" rx="6" stroke="url(#ig)" stroke-width="2"/>'
+        '<circle cx="12" cy="12" r="5" stroke="url(#ig)" stroke-width="2"/>'
+        '<circle cx="18" cy="6" r="1.5" fill="url(#ig)"/></svg>'
+        '<span style="font-weight:600;color:#c13584">Instagram</span></span>',
+    "FACEBOOK": '<span style="display:inline-flex;align-items:center;gap:6px">'
+        '<svg width="18" height="18" viewBox="0 0 24 24">'
+        '<circle cx="12" cy="12" r="11" fill="#1877F2"/>'
+        '<path d="M16 12.5h-2.5V18h-3v-5.5H8.5v-3H10.5V8c0-1.7 1-3 3-3h2v2.5h-1.5c-.6 0-1 .4-1 1v1h2.5l-.5 3z" fill="white"/></svg>'
+        '<span style="font-weight:600;color:#1877F2">Facebook</span></span>',
+    "TWITTER": '<span style="display:inline-flex;align-items:center;gap:6px">'
+        '<svg width="18" height="18" viewBox="0 0 24 24">'
+        '<path d="M18.9 2h3.7l-8.1 9.3L24 22h-7.5l-5.8-7.6L4.5 22H.8l8.7-9.9L0 2h7.7l5.3 6.9L18.9 2zM17.6 20h2L6.5 4H4.4l13.2 16z" fill="#000"/></svg>'
+        '<span style="font-weight:600;color:#000">X</span></span>',
+    "X": '<span style="display:inline-flex;align-items:center;gap:6px">'
+        '<svg width="18" height="18" viewBox="0 0 24 24">'
+        '<path d="M18.9 2h3.7l-8.1 9.3L24 22h-7.5l-5.8-7.6L4.5 22H.8l8.7-9.9L0 2h7.7l5.3 6.9L18.9 2zM17.6 20h2L6.5 4H4.4l13.2 16z" fill="#000"/></svg>'
+        '<span style="font-weight:600;color:#000">X</span></span>',
+    "YOUTUBE": '<span style="display:inline-flex;align-items:center;gap:6px">'
+        '<svg width="18" height="18" viewBox="0 0 24 24">'
+        '<rect x="1" y="4" width="22" height="16" rx="4" fill="#FF0000"/>'
+        '<polygon points="10,8 16,12 10,16" fill="white"/></svg>'
+        '<span style="font-weight:600;color:#FF0000">YouTube</span></span>',
+    "TIKTOK": '<span style="display:inline-flex;align-items:center;gap:6px">'
+        '<svg width="18" height="18" viewBox="0 0 24 24">'
+        '<path d="M9 3v12a3 3 0 1 1-3-3" stroke="#25F4EE" stroke-width="2" fill="none"/>'
+        '<path d="M11 3v12a3 3 0 1 1-3-3" stroke="#FE2C55" stroke-width="2" fill="none"/>'
+        '<path d="M10 3v12a3 3 0 1 1-3-3" stroke="#000" stroke-width="2" fill="none"/>'
+        '<path d="M10 3c0 3 3 5 6 5" stroke="#000" stroke-width="2" fill="none"/></svg>'
+        '<span style="font-weight:600;color:#000">TikTok</span></span>',
+    "LINKEDIN": '<span style="display:inline-flex;align-items:center;gap:6px">'
+        '<svg width="18" height="18" viewBox="0 0 24 24">'
+        '<rect x="1" y="1" width="22" height="22" rx="3" fill="#0A66C2"/>'
+        '<path d="M7 10v7M7 7v.01M10 17v-4.5c0-1.4 1-2.5 2.5-2.5s2.5 1.1 2.5 2.5V17M10 10v7" stroke="white" stroke-width="1.5" fill="none"/></svg>'
+        '<span style="font-weight:600;color:#0A66C2">LinkedIn</span></span>',
+}
 _SENT_COLORS = {"Positivo": "#2ecc71", "Neutral": "#95a5a6", "Negativo": "#e74c3c"}
 _SENT_BG = {"Positivo": "#eafaf1", "Neutral": "#f2f3f4", "Negativo": "#fdedec"}
 
 
+def _strip_emoji(text):
+    return re.sub(
+        "["
+        "\U0001F1E6-\U0001FAFF"
+        "\U00002600-\U000027BF"
+        "\U0000FE00-\U0000FE0F"
+        "\U00002190-\U000021FF"
+        "\U0000200D"
+        "\U0000FE0F"
+        "]+", "", text
+    ).strip()
+
+
+def _hex_to_rgb(h):
+    h = h.lstrip("#")
+    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+
 def _generate_card_png(row):
-    W, PAD = 700, 20
+    W, PAD, INNER = 720, 24, 20
     sent = str(row.get("Sentimiento", ""))
     accent = _SENT_COLORS.get(sent, "#95a5a6")
-    bg = _SENT_BG.get(sent, "#f2f3f4")
+    accent_rgb = _hex_to_rgb(accent)
+    bg_rgb = _hex_to_rgb(_SENT_BG.get(sent, "#f2f3f4"))
 
     try:
-        font = ImageFont.truetype("arial.ttf", 15)
-        font_sm = ImageFont.truetype("arial.ttf", 12)
-        font_b = ImageFont.truetype("arialbd.ttf", 16)
-        font_title = ImageFont.truetype("arialbd.ttf", 18)
+        font = ImageFont.truetype("arial.ttf", 14)
+        font_sm = ImageFont.truetype("arial.ttf", 11)
+        font_b = ImageFont.truetype("arialbd.ttf", 14)
+        font_title = ImageFont.truetype("arialbd.ttf", 16)
+        font_head = ImageFont.truetype("arialbd.ttf", 13)
     except OSError:
         font = ImageFont.load_default()
-        font_sm = font
-        font_b = font
-        font_title = font
+        font_sm = font_b = font_title = font_head = font
 
-    comment = str(row.get("Comentario", ""))
-    lines = textwrap.wrap(comment, width=75) or [""]
-    text_h = len(lines) * 22
-    H = 180 + text_h
-
-    img = Image.new("RGB", (W, H), "white")
-    draw = ImageDraw.Draw(img)
-
-    draw.rectangle([0, 0, W, 50], fill=accent)
-    author = str(row.get("Autor", ""))
+    author = _strip_emoji(str(row.get("Autor", "")))
     network = str(row.get("Red", ""))
-    icon = _NETWORK_ICONS.get(network.upper(), "🌐")
-    draw.text((PAD, 14), author, fill="white", font=font_title)
-    net_label = "{} {}".format(icon, network)
-    net_w = draw.textlength(net_label, font=font_b)
-    draw.text((W - PAD - net_w, 16), net_label, fill="white", font=font_b)
+    comment = _strip_emoji(str(row.get("Comentario", "")))
+    lines = textwrap.wrap(comment, width=80) or ["(sem texto)"]
+    text_h = len(lines) * 20
 
-    sent_label = sent
-    sw = draw.textlength(sent_label, font=font_b)
-    sx = W - PAD - sw - 10
-    draw.rounded_rectangle([sx - 6, 58, sx + sw + 6, 80], radius=4, fill=bg, outline=accent)
-    draw.text((sx, 59), sent_label, fill=accent, font=font_b)
-
-    y = 90
-    for line in lines:
-        draw.text((PAD, y), line, fill="#222", font=font)
-        y += 22
-
-    y += 12
-    draw.line([(PAD, y), (W - PAD, y)], fill="#ddd")
-    y += 10
+    tema = str(row.get("Tema", "")) if pd.notna(row.get("Tema")) else ""
+    subtema = str(row.get("Subtema", "")) if pd.notna(row.get("Subtema")) else ""
+    sub_tags = [s.strip() for s in subtema.split(",") if s.strip()]
+    has_tags = bool(tema or sub_tags)
 
     meta_parts = []
     post_date = row.get("Fecha de publicación")
@@ -1332,25 +1370,55 @@ def _generate_card_png(row):
     likes = row.get("Likes")
     if pd.notna(likes) and str(likes) != "None":
         meta_parts.append("Likes: {}".format(likes))
-    if meta_parts:
-        draw.text((PAD, y), "  ·  ".join(meta_parts), fill="#888", font=font_sm)
+
+    H = 60 + text_h + 20 + (24 if meta_parts else 0) + (30 if has_tags else 0) + PAD
+    img = Image.new("RGB", (W, H), "white")
+    draw = ImageDraw.Draw(img)
+
+    # borda lateral
+    draw.rectangle([0, 0, 5, H], fill=accent_rgb)
+
+    # header
+    draw.text((PAD + INNER, 16), author, fill=(24, 46, 76), font=font_title)
+    nw = draw.textlength(network, font=font_head)
+    draw.text((W - PAD - nw, 18), network, fill=(120, 120, 120), font=font_head)
+
+    # sentiment badge
+    sw = draw.textlength(sent, font=font_b)
+    bx = W - PAD - sw - 16
+    draw.rounded_rectangle([bx, 40, bx + sw + 16, 58], radius=10, fill=bg_rgb, outline=accent_rgb)
+    draw.text((bx + 8, 41), sent, fill=accent_rgb, font=font_b)
+
+    # comment
+    y = 66
+    for line in lines:
+        draw.text((PAD + INNER, y), line, fill=(51, 51, 51), font=font)
         y += 20
 
-    tags = []
-    tema = row.get("Tema")
-    if pd.notna(tema) and str(tema).strip():
-        tags.append(str(tema))
-    subtema = row.get("Subtema")
-    if pd.notna(subtema) and str(subtema).strip():
-        tags.append(str(subtema))
-    if tags:
-        tx = PAD
-        for tag in tags:
-            tw = draw.textlength(tag, font=font_sm)
-            draw.rounded_rectangle([tx, y, tx + tw + 12, y + 20], radius=3,
-                                   fill="#eef2f7", outline="#ccd")
-            draw.text((tx + 6, y + 3), tag, fill="#444", font=font_sm)
-            tx += tw + 20
+    y += 8
+    draw.line([(PAD + INNER, y), (W - PAD, y)], fill=(230, 230, 230))
+    y += 8
+
+    # tags
+    if has_tags:
+        tx = PAD + INNER
+        if tema:
+            tw = draw.textlength(tema, font=font_sm)
+            draw.rounded_rectangle([tx, y, tx + tw + 16, y + 22], radius=11,
+                                   fill=(248, 215, 227), outline=(232, 160, 184))
+            draw.text((tx + 8, y + 4), tema, fill=(167, 50, 83), font=font_sm)
+            tx += tw + 24
+        for st_tag in sub_tags:
+            tw = draw.textlength(st_tag, font=font_sm)
+            draw.rounded_rectangle([tx, y, tx + tw + 16, y + 22], radius=11,
+                                   fill=(212, 244, 248), outline=(160, 220, 230))
+            draw.text((tx + 8, y + 4), st_tag, fill=(10, 126, 140), font=font_sm)
+            tx += tw + 24
+        y += 30
+
+    # meta
+    if meta_parts:
+        draw.text((PAD + INNER, y), "  ·  ".join(meta_parts), fill=(160, 160, 160), font=font_sm)
 
     buf = io.BytesIO()
     img.save(buf, format="PNG")
@@ -1497,7 +1565,7 @@ with tab_clasif:
             _link = _row.get("Link del post")
             _tema_cur = str(_row.get("Tema", ""))
             _subtema_cur = str(_row.get("Subtema", "")) if pd.notna(_row.get("Subtema")) else ""
-            _sub_tags = [s.strip() for s in _subtema_cur.split(",") if s.strip()]
+            _sub_tags = list(dict.fromkeys(s.strip() for s in _subtema_cur.split(",") if s.strip()))
             _sent_color = _SENT_COLORS.get(_sent_cur, "#95a5a6")
             _sent_bg = _SENT_BG.get(_sent_cur, "#f2f3f4")
             _likes_str = str(_likes) if pd.notna(_likes) and str(_likes) != "None" else ""
@@ -1530,12 +1598,12 @@ with tab_clasif:
             _meta_line = "&nbsp;&nbsp;·&nbsp;&nbsp;".join(_meta_parts)
 
             _card_html = """
-            <div style="border-left:4px solid {accent};padding:0 0 4px">
+            <div style="border-left:4px solid {accent};padding:4px 0 4px 16px;margin-left:4px">
               <div style="display:flex;align-items:center;justify-content:space-between;
                           padding:0 0 6px">
                 <div>
                   <span style="font-size:1.05rem;font-weight:700;color:#182E4C">{author}</span>
-                  <span style="color:#888;margin-left:12px">{icon} {network}</span>
+                  <span style="margin-left:12px">{network_html}</span>
                 </div>
                 <span style="background:{sent_bg};color:{accent};border:1px solid {accent};
                        border-radius:14px;padding:4px 14px;font-size:0.85rem;font-weight:700">
@@ -1549,7 +1617,8 @@ with tab_clasif:
             </div>
             """.format(
                 accent=_sent_color, sent_bg=_sent_bg,
-                author=_autor, icon=_icon, network=_net,
+                author=_autor,
+                network_html=_NETWORK_HTML.get(_net.upper(), '<span style="color:#888">{} {}</span>'.format(_icon, _net)),
                 sentiment=_sent_cur,
                 comment=_comment.replace("<", "&lt;"),
                 tags=_tags_pills, meta=_meta_line,
@@ -1583,7 +1652,7 @@ with tab_clasif:
                     placeholder="+ subtema ↵",
                     label_visibility="collapsed",
                 )
-                if _new_sub_input.strip():
+                if _new_sub_input.strip() and _new_sub_input.strip() not in _sub_tags:
                     _sub_tags.append(_new_sub_input.strip())
                 if _sub_tags:
                     _remove_opts = ["🗑️"] + _sub_tags
@@ -1596,7 +1665,7 @@ with tab_clasif:
                         _sub_tags = [s for s in _sub_tags if s != _to_remove]
                 _new_subtema = ", ".join(_sub_tags) if _sub_tags else ""
 
-                _a1, _a2, _a3 = st.columns([1, 1, 5])
+                _a1, _a2 = st.columns([1, 1])
                 if _link and pd.notna(_link):
                     _a1.link_button("🔗 " + _t("open_original"), str(_link))
                 _png_bytes = _generate_card_png(_row)
