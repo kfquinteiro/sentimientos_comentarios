@@ -1568,7 +1568,7 @@ with tab_clasif:
             _sub_tags = list(dict.fromkeys(s.strip() for s in _subtema_cur.split(",") if s.strip()))
             _sent_color = _SENT_COLORS.get(_sent_cur, "#95a5a6")
             _sent_bg = _SENT_BG.get(_sent_cur, "#f2f3f4")
-            _likes_str = str(_likes) if pd.notna(_likes) and str(_likes) != "None" else ""
+            _likes_str = str(int(_likes)) if pd.notna(_likes) and str(_likes) != "None" else ""
             _post_str = str(_post_date)[:16] if pd.notna(_post_date) else ""
             _comm_str = str(_comm_date)[:16] if pd.notna(_comm_date) else ""
 
@@ -1627,13 +1627,17 @@ with tab_clasif:
             with st.container(border=True):
                 st.markdown(_card_html, unsafe_allow_html=True)
 
-                _e1, _e2, _e3, _e4 = st.columns([2, 2, 2, 1])
+                st.markdown(
+                    '<div style="border-top:1px solid #eee;margin:4px 0 8px"></div>',
+                    unsafe_allow_html=True,
+                )
+
+                _e1, _e2, _e3, _e4 = st.columns([3, 3, 3, 1])
                 _new_sent = _e1.selectbox(
                     _t("sentiment_label"),
                     _SENT_OPTIONS_DISPLAY,
                     index=_SENT_OPTIONS_DISPLAY.index(_sent_disp) if _sent_disp in _SENT_OPTIONS_DISPLAY else 1,
                     key="card_sent_{}_{}".format(page_num, _ci),
-                    label_visibility="collapsed",
                 )
                 _tema_opts = ["—"] + topic_list
                 _tema_idx = _tema_opts.index(_tema_cur) if _tema_cur in _tema_opts else 0
@@ -1642,7 +1646,6 @@ with tab_clasif:
                     _tema_opts,
                     index=_tema_idx,
                     key="card_tema_{}_{}".format(page_num, _ci),
-                    label_visibility="collapsed",
                 )
                 _new_tema = "" if _new_tema_sel == "—" else _new_tema_sel
                 _new_sub_input = _e3.text_input(
@@ -1650,26 +1653,26 @@ with tab_clasif:
                     value="",
                     key="card_sub_{}_{}".format(page_num, _ci),
                     placeholder="+ subtema ↵",
-                    label_visibility="collapsed",
                 )
                 if _new_sub_input.strip() and _new_sub_input.strip() not in _sub_tags:
                     _sub_tags.append(_new_sub_input.strip())
                 if _sub_tags:
-                    _remove_opts = ["🗑️"] + _sub_tags
+                    _remove_opts = ["Remover subtema..."] + _sub_tags
                     _to_remove = _e4.selectbox(
-                        "rem", _remove_opts,
+                        "✕",
+                        _remove_opts,
                         key="card_rm_{}_{}".format(page_num, _ci),
-                        label_visibility="collapsed",
                     )
-                    if _to_remove != "🗑️":
+                    if _to_remove != "Remover subtema...":
                         _sub_tags = [s for s in _sub_tags if s != _to_remove]
                 _new_subtema = ", ".join(_sub_tags) if _sub_tags else ""
 
-                _a1, _a2 = st.columns([1, 1])
+                _a1, _a2, _ = st.columns([2, 2, 6])
                 if _link and pd.notna(_link):
                     _a1.link_button("🔗 " + _t("open_original"), str(_link))
                 _png_bytes = _generate_card_png(_row)
-                _a2.download_button(
+                _a1_btn = _a2 if _link and pd.notna(_link) else _a1
+                _a1_btn.download_button(
                     "📥 " + _t("download_png"),
                     data=_png_bytes,
                     file_name="mencion_{}_{}.png".format(_autor[:20], _ci),
