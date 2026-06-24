@@ -1551,7 +1551,6 @@ with tab_clasif:
         page_slice = filtered.iloc[start:start + page_size].copy()
 
         # ── Cards ──────────────────────────────────────────────────────────
-        _card_changed = False
         for _ci, (_idx, _row) in enumerate(page_slice.iterrows()):
             _net = str(_row.get("Red", ""))
             _icon = _NETWORK_ICONS.get(_net.upper(), "🌐")
@@ -1661,35 +1660,25 @@ with tab_clasif:
                     _del_items.append(_new_tema)
                 _del_items.extend(_sub_tags)
                 if _del_items:
-                    _e4.markdown(
-                        '<div style="display:flex;justify-content:center;padding-top:6px">'
-                        '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" '
-                        'fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
-                        '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>'
-                        '<path d="M10 11v6"/><path d="M14 11v6"/>'
-                        '<path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></div>',
-                        unsafe_allow_html=True,
-                    )
-                    _remove_opts = ["–"] + _del_items
+                    _remove_opts = [_t("remove_tag")] + _del_items
                     _to_remove = _e4.selectbox(
-                        "rem",
+                        "×",
                         _remove_opts,
                         key="card_rm_{}_{}".format(page_num, _ci),
                         label_visibility="collapsed",
                     )
-                    if _to_remove != "–":
+                    if _to_remove != _t("remove_tag"):
                         if _to_remove == _new_tema:
                             _new_tema = ""
                         else:
                             _sub_tags = [s for s in _sub_tags if s != _to_remove]
                 _new_subtema = ", ".join(_sub_tags) if _sub_tags else ""
 
-                _a1, _a2, _ = st.columns([2, 2, 6])
-                if _link and pd.notna(_link):
-                    _a1.link_button("🔗 " + _t("open_original"), str(_link))
                 _png_bytes = _generate_card_png(_row)
-                _a1_btn = _a2 if _link and pd.notna(_link) else _a1
-                _a1_btn.download_button(
+                _b1, _b2, _b3 = st.columns([2, 2, 8])
+                if _link and pd.notna(_link):
+                    _b1.link_button("🔗 " + _t("open_original"), str(_link))
+                _b2.download_button(
                     "📥 " + _t("download_png"),
                     data=_png_bytes,
                     file_name="mencion_{}_{}.png".format(_autor[:20], _ci),

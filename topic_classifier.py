@@ -391,6 +391,20 @@ DICTIONARIES = {
                 "control financiero", "metas financieras",
                 "consumo consciente", "salir de deudas",
             ],
+            "Posicionamento de marca": [
+                # PT-BR
+                "marca", "branding", "identidade", "posicionamento",
+                "reputação", "imagem", "reconhecimento", "presença",
+                "visibilidade", "top of mind", "awareness", "propósito",
+                "valor de marca", "percepção", "rebranding", "slogan",
+                "tagline", "logo", "logotipo", "identidade visual",
+                # ES
+                "marca", "branding", "identidad", "posicionamiento",
+                "reputación", "imagen", "reconocimiento", "presencia",
+                "visibilidad", "top of mind", "awareness", "propósito",
+                "valor de marca", "percepción", "rebranding", "slogan",
+                "tagline", "logo", "logotipo", "identidad visual",
+            ],
         },
     },
 }
@@ -421,6 +435,7 @@ _TOPIC_TRANSLATIONS = {
         "Acciones": {"es": "Acciones"},
         "Eventos": {"es": "Eventos"},
         "Educação financeira": {"es": "Educación financiera"},
+        "Posicionamento de marca": {"es": "Posicionamiento de marca"},
     },
     "politica_br": {
         "Segurança pública": {"es": "Seguridad pública"},

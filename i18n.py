@@ -174,6 +174,7 @@ TEXTS = {
     "comments_per_page": {"pt": "Comentários por página", "es": "Comentarios por página"},
     "open_original": {"pt": "Abrir original", "es": "Abrir original"},
     "download_png": {"pt": "Baixar PNG", "es": "Descargar PNG"},
+    "remove_tag": {"pt": "Remover", "es": "Borrar"},
     "post_date_short": {"pt": "Post", "es": "Post"},
     "comment_date_short": {"pt": "Comentário", "es": "Comentario"},
     "subtopic_label": {"pt": "Subtema", "es": "Subtema"},
