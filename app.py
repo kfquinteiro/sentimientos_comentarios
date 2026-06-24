@@ -1656,15 +1656,32 @@ with tab_clasif:
                 )
                 if _new_sub_input.strip() and _new_sub_input.strip() not in _sub_tags:
                     _sub_tags.append(_new_sub_input.strip())
-                if _sub_tags:
-                    _remove_opts = ["Remover subtema..."] + _sub_tags
+                _del_items = []
+                if _new_tema:
+                    _del_items.append(_new_tema)
+                _del_items.extend(_sub_tags)
+                if _del_items:
+                    _e4.markdown(
+                        '<div style="display:flex;justify-content:center;padding-top:6px">'
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" '
+                        'fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+                        '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>'
+                        '<path d="M10 11v6"/><path d="M14 11v6"/>'
+                        '<path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></div>',
+                        unsafe_allow_html=True,
+                    )
+                    _remove_opts = ["–"] + _del_items
                     _to_remove = _e4.selectbox(
-                        "✕",
+                        "rem",
                         _remove_opts,
                         key="card_rm_{}_{}".format(page_num, _ci),
+                        label_visibility="collapsed",
                     )
-                    if _to_remove != "Remover subtema...":
-                        _sub_tags = [s for s in _sub_tags if s != _to_remove]
+                    if _to_remove != "–":
+                        if _to_remove == _new_tema:
+                            _new_tema = ""
+                        else:
+                            _sub_tags = [s for s in _sub_tags if s != _to_remove]
                 _new_subtema = ", ".join(_sub_tags) if _sub_tags else ""
 
                 _a1, _a2, _ = st.columns([2, 2, 6])
@@ -1681,23 +1698,21 @@ with tab_clasif:
                 )
 
                 _real_sent = _SENT_FROM_DISPLAY.get(_new_sent, "Neutral")
+                _changed = False
                 if _real_sent != _sent_cur:
                     clasif_df.loc[_idx, "Sentimiento"] = _real_sent
-                    _card_changed = True
+                    _changed = True
                 if _new_tema != _tema_cur:
                     clasif_df.loc[_idx, "Tema"] = _new_tema
-                    _card_changed = True
+                    _changed = True
                 if _new_subtema != _subtema_cur:
                     clasif_df.loc[_idx, "Subtema"] = _new_subtema
-                    _card_changed = True
-
-        if _card_changed:
-            if st.button(_t("save_changes"), type="primary", key="save_cards"):
-                save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
-                clasif_df[save_cols].to_excel(
-                    clasif_path, sheet_name="Comentarios", index=False)
-                st.success(_t("changes_saved"))
-                st.rerun()
+                    _changed = True
+                if _changed:
+                    save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
+                    clasif_df[save_cols].to_excel(
+                        clasif_path, sheet_name="Comentarios", index=False)
+                    st.rerun()
 
         _ps_sel = st.pills(_t("comments_per_page"), [10, 25, 50],
                            default=st.session_state.get("clasif_ps", 10),
