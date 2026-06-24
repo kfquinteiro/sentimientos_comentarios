@@ -996,7 +996,9 @@ with tab_analysis:
         else:
             run_dir = CURRENT_RUN_DIR
 
-            _analysis_refresh = "3s" if ra.is_analysis_running(run_dir) else None
+            _a_state = ra.load_analysis_state(run_dir)
+            _a_done = _a_state and _a_state.get("stage") == "completado"
+            _analysis_refresh = None if _a_done else "3s"
 
             @st.fragment(run_every=_analysis_refresh)
             def render_analysis(run_dir):
@@ -1311,10 +1313,14 @@ with tab_clasif:
 
         sel_dict_key = st.session_state.get("selected_dict_key", "servicios_financieros")
 
-        clasif_df["Tema"] = tc.classify_series(
-            clasif_df["Comentario"].fillna(""), sel_dict_key, lang=_dict_lang())
+        if "Tema" not in clasif_df.columns:
+            clasif_df["Tema"] = tc.classify_series(
+                clasif_df["Comentario"].fillna(""), sel_dict_key, lang=_dict_lang())
 
         topic_list = sorted(tc.topic_names(sel_dict_key, _dict_lang())) + [tc.otros_label(_dict_lang())]
+
+        if "Subtema" not in clasif_df.columns:
+            clasif_df["Subtema"] = ""
 
         clasif_df["_sent_display"] = clasif_df["Sentimiento"].map(
             _SENT_DISPLAY).fillna("○ Neutral")
@@ -1382,10 +1388,11 @@ with tab_clasif:
         start = (page_num - 1) * page_size
         page_slice = filtered.iloc[start:start + page_size].copy()
 
-        show = [c for c in ["Red", "Marca", "Autor", "Comentario", "Likes",
-                            "_sent_display", "Tema", "Link del post"]
+        show = [c for c in ["Red", "Marca", "Autor", "Fecha de publicación",
+                            "Fecha del comentario", "Comentario", "Likes",
+                            "_sent_display", "Tema", "Subtema", "Link del post"]
                 if c in page_slice.columns]
-        locked = [c for c in show if c not in ("_sent_display", "Tema")]
+        locked = [c for c in show if c not in ("_sent_display", "Tema", "Subtema")]
 
         with st.form("clasif_form"):
             edited = st.data_editor(
@@ -1415,6 +1422,8 @@ with tab_clasif:
                 edited_sent = edited["_sent_display"].map(_SENT_FROM_DISPLAY)
                 clasif_df.loc[edited.index, "Sentimiento"] = edited_sent.values
                 clasif_df.loc[edited.index, "Tema"] = edited["Tema"].values
+                if "Subtema" in edited.columns:
+                    clasif_df.loc[edited.index, "Subtema"] = edited["Subtema"].values
                 save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
                 clasif_df[save_cols].to_excel(
                     clasif_path, sheet_name="Comentarios", index=False)
