@@ -613,7 +613,7 @@ def _check_password():
         with st.form("login"):
             st.markdown("#### " + _t("login_title"))
             entered = st.text_input(_t("login_password"), type="password")
-            if st.form_submit_button(_t("login_enter"), width="stretch"):
+            if st.form_submit_button(_t("login_enter"), use_container_width=True):
                 if entered == pwd:
                     st.session_state["authenticated"] = True
                     st.rerun()
