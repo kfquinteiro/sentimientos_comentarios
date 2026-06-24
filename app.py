@@ -294,10 +294,6 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     if _sent_pct_topic is not None:
         _tc2.plotly_chart(_sent_pct_topic, use_container_width=True)
 
-    _topic_evo = charts.topic_evolution(chart_df, lang=_lang())
-    if _topic_evo is not None:
-        st.plotly_chart(_topic_evo, use_container_width=True)
-
     if "Subtema" in df.columns:
         _sub_fig = charts.sentiment_by_subtheme(df, lang=_lang())
         if _sub_fig is not None:
@@ -1411,7 +1407,7 @@ def _generate_card_png(row):
         font_b = ImageFont.truetype("arialbd.ttf", 14)
         font_title = ImageFont.truetype("arialbd.ttf", 16)
         font_head = ImageFont.truetype("arialbd.ttf", 13)
-    except OSError:
+    except Exception:
         font = ImageFont.load_default()
         font_sm = font_b = font_title = font_head = font
 
@@ -1777,10 +1773,13 @@ with tab_clasif:
                     clasif_df.loc[_idx, "Subtema"] = _new_subtema
                     if _new_tema and _sub_tags:
                         _add_subtemas_to_dict(sel_dict_key, _new_tema, _sub_tags)
-                    save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
-                    clasif_df[save_cols].to_excel(
-                        clasif_path, sheet_name="Comentarios", index=False)
-                    st.rerun()
+                    st.session_state["_clasif_needs_save"] = True
+
+        if st.session_state.pop("_clasif_needs_save", False):
+            save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
+            clasif_df[save_cols].to_excel(
+                clasif_path, sheet_name="Comentarios", index=False)
+            st.rerun()
 
         _pb1, _pb2, _pb3 = st.columns(3)
         if _pb1.button("← ", disabled=page_num <= 1, key="clasif_prev2", use_container_width=True):
