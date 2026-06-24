@@ -128,6 +128,12 @@ TEXTS = {
     "click_word_comments": {"pt": "Clique em uma palavra para ver os comentários", "es": "Haz clic en una palabra para ver los comentarios"},
     "comments_with_word": {"pt": "{} comentários com '{}' — mostrando top 10:", "es": "{} comentarios con '{}' — mostrando top 10:"},
     "wordcloud_by_sentiment": {"pt": "Nuvem de palavras por sentimento", "es": "Nube de palabras por sentimiento"},
+    "wordcloud_by_topic": {"pt": "Nuvem de palavras por tema", "es": "Nube de palabras por tema"},
+    "stopwords_label": {"pt": "Palavras a excluir (stopwords)", "es": "Palabras a excluir (stopwords)"},
+    "stopwords_help": {
+        "pt": "Separe as palavras por vírgula. Ex: banco, conta, cliente",
+        "es": "Separe las palabras por coma. Ej: banco, cuenta, cliente",
+    },
     "word_tree": {"pt": "Árvore de palavras", "es": "Árbol de palabras"},
     "word_tree_caption": {
         "pt": "Escreva uma palavra ou frase e descubra como os comentários continuam. Ramos mais grossos e textos maiores indicam continuações mais frequentes.",

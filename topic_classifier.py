@@ -389,6 +389,51 @@ _WORD_BOUNDARY = re.compile(r"\b{}\b")
 
 _OTROS = {"pt": "Outros", "es": "Otros"}
 
+_TOPIC_TRANSLATIONS = {
+    "servicios_financieros": {
+        "Crédito": {"es": "Crédito"},
+        "Benefícios": {"es": "Beneficios"},
+        "Investimento": {"es": "Inversión"},
+        "Segurança": {"es": "Seguridad"},
+        "Cartões": {"es": "Tarjetas"},
+        "Pagamentos": {"es": "Pagos"},
+        "Criptomoedas": {"es": "Criptomonedas"},
+        "Saldo e extrato": {"es": "Saldo y estado de cuenta"},
+        "Transferências": {"es": "Transferencias"},
+        "Portabilidade": {"es": "Portabilidad"},
+        "Assinaturas": {"es": "Suscripciones"},
+        "Seguro": {"es": "Seguro"},
+        "Atendimento": {"es": "Atención al cliente"},
+        "Taxas e cobranças": {"es": "Tasas y cobros"},
+        "App e canais digitais": {"es": "App y canales digitales"},
+        "Acciones": {"es": "Acciones"},
+        "Educação financeira": {"es": "Educación financiera"},
+    },
+    "politica_br": {
+        "Segurança pública": {"es": "Seguridad pública"},
+        "Saúde": {"es": "Salud"},
+        "Educação": {"es": "Educación"},
+        "Violência contra a mulher": {"es": "Violencia contra la mujer"},
+        "Economia": {"es": "Economía"},
+        "Meio ambiente": {"es": "Medio ambiente"},
+        "Corrupção": {"es": "Corrupción"},
+        "Infraestrutura": {"es": "Infraestructura"},
+        "Habitação": {"es": "Vivienda"},
+        "Direitos humanos": {"es": "Derechos humanos"},
+        "Valores": {"es": "Valores"},
+        "Manifestação de apoio": {"es": "Manifestación de apoyo"},
+        "Democracia": {"es": "Democracia"},
+        "Clã Bolsonaro": {"es": "Clan Bolsonaro"},
+    },
+}
+
+
+def translate_topic(topic, dictionary_key, lang="pt"):
+    if lang == "pt":
+        return topic
+    tr = _TOPIC_TRANSLATIONS.get(dictionary_key, {}).get(topic, {})
+    return tr.get(lang, topic)
+
 
 def available_dictionaries(lang="pt"):
     """Retorna lista de (key, name) dos dicionários disponíveis."""
@@ -432,9 +477,17 @@ def classify_text(text, dictionary_key, lang="pt"):
             best_max_len = max_len
             best_topic = topic
 
-    return best_topic or otros_label(lang)
+    if best_topic:
+        return translate_topic(best_topic, dictionary_key, lang)
+    return otros_label(lang)
 
 
 def classify_series(texts, dictionary_key, lang="pt"):
     """Clasifica una lista/Series de textos. Retorna lista de temas."""
     return [classify_text(t, dictionary_key, lang=lang) for t in texts]
+
+
+def topic_names(dictionary_key, lang="pt"):
+    """Retorna lista de nomes de temas traduzidos para o idioma."""
+    topics = DICTIONARIES[dictionary_key]["topics"]
+    return [translate_topic(t, dictionary_key, lang) for t in topics]

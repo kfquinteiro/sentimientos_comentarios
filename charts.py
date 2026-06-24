@@ -115,23 +115,24 @@ EMOJI_RE = re.compile(
 WORD_RE = re.compile(r"[a-záàâãéêíóôõúüçñ]+")
 
 
-def _clean_text_for_wordcloud(text):
+def _clean_text_for_wordcloud(text, extra_stopwords=None):
     text = text.lower()
     text = URL_RE.sub(" ", text)
     text = MENTION_RE.sub(" ", text)
     text = EMOJI_RE.sub(" ", text)
     text = text.replace("#", " ")
     words = WORD_RE.findall(text)
-    words = [w for w in words if len(w) > 2 and w not in SPANISH_STOPWORDS]
+    stop = SPANISH_STOPWORDS | extra_stopwords if extra_stopwords else SPANISH_STOPWORDS
+    words = [w for w in words if len(w) > 2 and w not in stop]
     return " ".join(words)
 
 
-def top_words(texts, n=20):
+def top_words(texts, n=20, extra_stopwords=None):
     """Retorna las n palabras más frecuentes (misma limpieza que la nube)."""
     from collections import Counter
     all_words = []
     for text in texts:
-        all_words.extend(_clean_text_for_wordcloud(str(text)).split())
+        all_words.extend(_clean_text_for_wordcloud(str(text), extra_stopwords).split())
     return Counter(all_words).most_common(n)
 
 
@@ -192,11 +193,11 @@ def _wiper_color_func(word, font_size, position, orientation, random_state=None,
     return WIPER_PALETTE[0]
 
 
-def wordcloud_image(texts, width=600, height=350, colormap=None):
+def wordcloud_image(texts, width=600, height=350, colormap=None, extra_stopwords=None):
     """Genera una nube de palabras a partir de una lista de comentarios.
     Retorna una imagen PIL, o None si no queda texto suficiente."""
     full_text = " ".join(str(t) for t in texts)
-    cleaned = _clean_text_for_wordcloud(full_text)
+    cleaned = _clean_text_for_wordcloud(full_text, extra_stopwords)
     if not cleaned.strip():
         return None
 

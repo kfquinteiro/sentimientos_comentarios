@@ -102,7 +102,8 @@ def load_report_data(report_path, mtime):
 
 
 @st.cache_data
-def build_wordcloud_image(report_path, mtime, red=None, sentimiento=None, marca=None, colormap=None):
+def build_wordcloud_image(report_path, mtime, red=None, sentimiento=None, marca=None,
+                          tema=None, colormap=None, extra_stopwords=None):
     df = load_report_data(report_path, mtime)
     if red:
         df = df[df["Red"] == red]
@@ -110,7 +111,9 @@ def build_wordcloud_image(report_path, mtime, red=None, sentimiento=None, marca=
         df = df[df["Sentimiento"] == sentimiento]
     if marca:
         df = df[df["Marca"] == marca]
-    return charts.wordcloud_image(df["Comentario"].dropna(), colormap=colormap)
+    if tema:
+        df = df[df["Tema"] == tema]
+    return charts.wordcloud_image(df["Comentario"].dropna(), colormap=colormap, extra_stopwords=extra_stopwords)
 
 
 @st.cache_data
@@ -259,10 +262,18 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
 
     networks = sorted(df["Red"].dropna().unique().tolist())
 
+    # ── Stopwords personalizadas ───────────────────────────────────────────
+    sw_raw = st.text_input(
+        _t("stopwords_label"),
+        key="{}_stopwords".format(key_prefix),
+        help=_t("stopwords_help"),
+    )
+    extra_sw = frozenset(w.strip().lower() for w in sw_raw.split(",") if w.strip()) if sw_raw else None
+
     st.subheader(_t("wordcloud_by_network"))
     wc_cols = st.columns(2)
     for i, red in enumerate(networks):
-        img = build_wordcloud_image(active_path, mtime, red=red)
+        img = build_wordcloud_image(active_path, mtime, red=red, extra_stopwords=extra_sw)
         with wc_cols[i % 2]:
             st.caption(red)
             if img is not None:
@@ -270,7 +281,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
             else:
                 st.caption(_t("not_enough_text_cloud"))
 
-    cloud_words = charts.top_words(df["Comentario"].dropna(), n=50)
+    cloud_words = charts.top_words(df["Comentario"].dropna(), n=50, extra_stopwords=extra_sw)
     if cloud_words:
         word_labels = ["{} ({})".format(w, c) for w, c in cloud_words]
         selected_pill = st.pills(
@@ -328,6 +339,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
         img = build_wordcloud_image(
             active_path, mtime, red=red_filter, sentimiento=sentimiento,
             colormap=charts.SENTIMENT_COLORMAPS[sentimiento],
+            extra_stopwords=extra_sw,
         )
         with col:
             st.caption(sentimiento)
@@ -335,6 +347,22 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
                 st.image(img, use_container_width=True)
             else:
                 st.caption(_t("not_enough_text_cloud"))
+
+    # ── Nuvem por tema ─────────────────────────────────────────────────────
+    if "Tema" in df.columns:
+        st.subheader(_t("wordcloud_by_topic"))
+        temas = sorted(df["Tema"].dropna().unique().tolist())
+        otros = tc.otros_label(_lang())
+        temas = [t for t in temas if t != otros]
+        wc_tema_cols = st.columns(2)
+        for i, tema in enumerate(temas):
+            img = build_wordcloud_image(active_path, mtime, tema=tema, extra_stopwords=extra_sw)
+            with wc_tema_cols[i % 2]:
+                st.caption(tema)
+                if img is not None:
+                    st.image(img, use_container_width=True)
+                else:
+                    st.caption(_t("not_enough_text_cloud"))
 
     st.subheader(_t("word_tree"))
     st.caption(_t("word_tree_caption"))
@@ -481,7 +509,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
                 "Marca", marcas, key="{}_wc_marca_select".format(key_prefix),
             )
             marca_texts = df[df["Marca"] == sel_marca_wc]["Comentario"].dropna()
-            img = charts.wordcloud_image(marca_texts) if not marca_texts.empty else None
+            img = charts.wordcloud_image(marca_texts, extra_stopwords=extra_sw) if not marca_texts.empty else None
             if img is not None:
                 st.image(img, use_container_width=True)
             else:
@@ -1285,7 +1313,7 @@ with tab_clasif:
             clasif_df["Tema"] = tc.classify_series(
                 clasif_df["Comentario"].fillna(""), sel_dict_key, lang=_lang())
 
-        topic_list = sorted(tc.DICTIONARIES[sel_dict_key]["topics"].keys()) + [tc.otros_label(_lang())]
+        topic_list = sorted(tc.topic_names(sel_dict_key, _lang())) + [tc.otros_label(_lang())]
 
         clasif_df["_sent_display"] = clasif_df["Sentimiento"].map(
             _SENT_DISPLAY).fillna("○ Neutral")
