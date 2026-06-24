@@ -1545,6 +1545,7 @@ with tab_clasif:
 
         if "Subtema" not in clasif_df.columns:
             clasif_df["Subtema"] = ""
+        clasif_df["Subtema"] = clasif_df["Subtema"].fillna("").astype(str)
 
         clasif_df["_sent_display"] = clasif_df["Sentimiento"].map(
             _SENT_DISPLAY).fillna("○ Neutral")
