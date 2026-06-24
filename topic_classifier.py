@@ -332,11 +332,11 @@ DICTIONARIES = {
             "Taxas e cobranças": [
                 # PT-BR
                 "taxa", "tarifa", "cobrança", "cobrança indevida", "juros", "iof",
-                "multa", "mora", "encargo", "spread", "cet", "estorno",
+                "multa", "encargo", "spread", "estorno",
                 "cobrança abusiva", "anuidade",
                 # ES
                 "tasa", "tarifa", "cobro", "cobro indebido", "comisión",
-                "multa", "mora", "cargo", "recargo", "costo", "cobro abusivo",
+                "multa", "recargo", "cobro abusivo",
                 "anualidad",
             ],
             "App e canais digitais": [
@@ -365,15 +365,15 @@ DICTIONARIES = {
             ],
             "Eventos": [
                 # PT-BR
-                "evento", "corrida", "maratona", "carrera", "festival",
+                "evento", "corrida", "maratona", "carrera",
                 "show", "feira", "exposição", "conferência", "congresso",
                 "workshop", "palestra", "meetup", "encontro", "inauguração",
-                "cerimônia", "celebração", "aniversário", "premiação",
+                "cerimônia", "celebração", "premiação",
                 # ES
-                "evento", "carrera", "maratón", "festival", "feria",
+                "evento", "carrera", "maratón", "feria",
                 "exposición", "conferencia", "congreso", "taller",
                 "charla", "encuentro", "inauguración", "ceremonia",
-                "celebración", "aniversario", "premiación",
+                "celebración", "premiación",
             ],
             "Educação financeira": [
                 # PT-BR
