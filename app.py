@@ -1516,6 +1516,29 @@ with tab_clasif:
                     unsafe_allow_html=True,
                 )
 
+                # ── Tags visuais (tema + subtemas) ──
+                _sub_tags = [s.strip() for s in _subtema_cur.split(",") if s.strip()]
+                _tags_html = (
+                    '<span style="display:inline-block;background:#f8d7e3;color:#a73253;'
+                    'border:1px solid #e8a0b8;border-radius:12px;padding:3px 12px;'
+                    'margin:2px 4px 2px 0;font-size:0.85rem;font-weight:600">'
+                    '{}</span>'.format(_tema_cur)
+                    if _tema_cur else ""
+                )
+                for _st_tag in _sub_tags:
+                    _tags_html += (
+                        '<span style="display:inline-block;background:#d4f4f8;color:#0a7e8c;'
+                        'border:1px solid #a0dce6;border-radius:12px;padding:3px 12px;'
+                        'margin:2px 4px 2px 0;font-size:0.85rem;font-weight:600">'
+                        '{}</span>'.format(_st_tag)
+                    )
+                if _tags_html:
+                    st.markdown(
+                        '<div style="padding:4px 0 8px">{}</div>'.format(_tags_html),
+                        unsafe_allow_html=True,
+                    )
+
+                # ── Metadados ──
                 _m1, _m2, _m3 = st.columns(3)
                 if pd.notna(_post_date):
                     _m1.caption("📅 {}: {}".format(_t("post_date_short"), str(_post_date)[:16]))
@@ -1524,46 +1547,34 @@ with tab_clasif:
                 if pd.notna(_likes) and str(_likes) != "None":
                     _m3.caption("👍 {}".format(_likes))
 
-                _new_tema = st.selectbox(
+                # ── Edição ──
+                _e1, _e2, _e3 = st.columns([3, 3, 1])
+                _new_tema = _e1.selectbox(
                     _t("topic_label"),
                     topic_list,
                     index=topic_list.index(_tema_cur) if _tema_cur in topic_list else 0,
                     key="card_tema_{}_{}".format(page_num, _ci),
                 )
-
-                _sub_tags = [s.strip() for s in _subtema_cur.split(",") if s.strip()]
-                _tag_html = " ".join(
-                    '<span style="display:inline-block;background:#eef2f7;border:1px solid #ccd;'
-                    'border-radius:4px;padding:2px 8px;margin:2px;font-size:0.85rem">'
-                    '{}</span>'.format(t) for t in _sub_tags
-                ) if _sub_tags else ""
-                if _tag_html:
-                    st.markdown(_tag_html, unsafe_allow_html=True)
-
-                _sub_key = "card_sub_{}_{}".format(page_num, _ci)
-                _new_sub_input = st.text_input(
+                _new_sub_input = _e2.text_input(
                     _t("subtopic_label"),
                     value="",
-                    key=_sub_key,
-                    placeholder="+ subtema",
-                    label_visibility="collapsed",
+                    key="card_sub_{}_{}".format(page_num, _ci),
+                    placeholder="+ subtema ↵",
                 )
                 if _new_sub_input.strip():
                     _sub_tags.append(_new_sub_input.strip())
-                    _new_subtema = ", ".join(_sub_tags)
-                else:
-                    _new_subtema = ", ".join(_sub_tags) if _sub_tags else ""
 
                 if _sub_tags:
-                    _remove_opts = ["—"] + _sub_tags
-                    _to_remove = st.selectbox(
-                        "🗑️", _remove_opts,
+                    _remove_opts = ["🗑️"] + _sub_tags
+                    _to_remove = _e3.selectbox(
+                        "rem", _remove_opts,
                         key="card_rm_{}_{}".format(page_num, _ci),
                         label_visibility="collapsed",
                     )
-                    if _to_remove != "—":
+                    if _to_remove != "🗑️":
                         _sub_tags = [s for s in _sub_tags if s != _to_remove]
-                        _new_subtema = ", ".join(_sub_tags) if _sub_tags else ""
+
+                _new_subtema = ", ".join(_sub_tags) if _sub_tags else ""
 
                 _a1, _a2, _a3 = st.columns([2, 2, 6])
                 if _link and pd.notna(_link):
