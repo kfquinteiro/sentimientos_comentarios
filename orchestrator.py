@@ -7,6 +7,7 @@ caso o processo seja interrompido.
 """
 import json
 import os
+import sys
 import time
 from datetime import datetime, timezone
 
@@ -44,20 +45,23 @@ def pid_path(run_dir):
 
 def kill_running_export(run_dir):
     """Mata o processo de exportação se estiver rodando."""
-    import signal
+    import subprocess as _sp
     pp = pid_path(run_dir)
-    if not os.path.exists(pp):
-        return
-    try:
-        with open(pp, "r") as f:
-            pid = int(f.read().strip())
-        os.kill(pid, signal.SIGTERM)
-    except (ProcessLookupError, ValueError, OSError):
-        pass
-    try:
-        os.remove(pp)
-    except OSError:
-        pass
+    if os.path.exists(pp):
+        try:
+            with open(pp, "r") as f:
+                pid = int(f.read().strip())
+            if sys.platform == "win32":
+                _sp.run(["taskkill", "/F", "/PID", str(pid)],
+                        stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+            else:
+                os.kill(pid, 15)
+        except (ProcessLookupError, ValueError, OSError):
+            pass
+        try:
+            os.remove(pp)
+        except OSError:
+            pass
     flag = os.path.join(run_dir, "running.flag")
     try:
         os.remove(flag)
