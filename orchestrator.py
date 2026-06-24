@@ -116,7 +116,9 @@ def init_run(run_dir, links_df, source_file=None, column_mapping=None):
             "updated_at": None,
         })
 
+    import uuid
     state = {
+        "epoch": str(uuid.uuid4()),
         "source_file": source_file,
         "column_mapping": column_mapping or {},
         "created_at": now_iso(),
@@ -196,6 +198,7 @@ def process_item(client, item, dest_dir, run_dir, poll_seconds=5, job_timeout=90
 def run(run_dir, poll_seconds=5):
     """Processa todos os itens pendentes/ativos do run. Retorna o estado final."""
     state = load_state(run_dir)
+    my_epoch = state.get("epoch")
     client = ExportCommentsClient()
     dest_dir = files_dir(run_dir)
 
@@ -213,6 +216,10 @@ def run(run_dir, poll_seconds=5):
             item["error"] = str(e)
 
         item["updated_at"] = now_iso()
+
+        current = load_state(run_dir)
+        if current.get("epoch") != my_epoch:
+            break
         save_state(run_dir, state)
 
     return state

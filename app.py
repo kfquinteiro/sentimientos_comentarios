@@ -797,10 +797,10 @@ with tab_runs:
             )
             with st.container(key="reset_run_button"):
                 if st.button(_t("reset_button"), disabled=not confirm_reset, type="primary"):
+                    import uuid
                     orc.kill_running_export(run_dir)
-                    import time as _time
-                    _time.sleep(1)
                     state = orc.load_state(run_dir)
+                    state["epoch"] = str(uuid.uuid4())
                     for item in state["items"]:
                         item["status"] = "pending"
                         item["guid"] = None
