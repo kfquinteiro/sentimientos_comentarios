@@ -1394,96 +1394,136 @@ def _hex_to_rgb(h):
     return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
 
 
+def _find_font(names, size):
+    import glob as _glob
+    search_dirs = [
+        "/usr/share/fonts", "/usr/local/share/fonts",
+        "C:\\Windows\\Fonts", "C:\\Users\\{}\\AppData\\Local\\Microsoft\\Windows\\Fonts".format(
+            os.environ.get("USERNAME", "")),
+    ]
+    for name in names:
+        try:
+            return ImageFont.truetype(name, size)
+        except Exception:
+            pass
+        for d in search_dirs:
+            for f in _glob.glob(os.path.join(d, "**", name), recursive=True):
+                try:
+                    return ImageFont.truetype(f, size)
+                except Exception:
+                    pass
+    return ImageFont.load_default()
+
+
 def _generate_card_png(row):
-    W, PAD, INNER = 720, 24, 20
+    W, PAD = 800, 28
+    RADIUS = 16
+
     sent = str(row.get("Sentimiento", ""))
-    accent = _SENT_COLORS.get(sent, "#95a5a6")
-    accent_rgb = _hex_to_rgb(accent)
+    accent_rgb = _hex_to_rgb(_SENT_COLORS.get(sent, "#95a5a6"))
     bg_rgb = _hex_to_rgb(_SENT_BG.get(sent, "#f2f3f4"))
 
-    try:
-        font = ImageFont.truetype("arial.ttf", 14)
-        font_sm = ImageFont.truetype("arial.ttf", 11)
-        font_b = ImageFont.truetype("arialbd.ttf", 14)
-        font_title = ImageFont.truetype("arialbd.ttf", 16)
-        font_head = ImageFont.truetype("arialbd.ttf", 13)
-    except Exception:
-        font = ImageFont.load_default()
-        font_sm = font_b = font_title = font_head = font
+    _regular = ["DejaVuSans.ttf", "SegoeUI.ttf", "arial.ttf", "Helvetica.ttf"]
+    _bold = ["DejaVuSans-Bold.ttf", "SegoeUIBold.ttf", "arialbd.ttf", "Helvetica-Bold.ttf"]
+    font = _find_font(_regular, 15)
+    font_sm = _find_font(_regular, 12)
+    font_b = _find_font(_bold, 14)
+    font_title = _find_font(_bold, 18)
+    font_net = _find_font(_bold, 13)
+    font_sent = _find_font(_bold, 13)
+    font_tag = _find_font(_bold, 12)
+    font_meta = _find_font(_regular, 11)
 
     author = _strip_emoji(str(row.get("Autor", "")))
     network = str(row.get("Red", ""))
     comment = _strip_emoji(str(row.get("Comentario", "")))
-    lines = textwrap.wrap(comment, width=80) or ["(sem texto)"]
-    text_h = len(lines) * 20
+    lines = textwrap.wrap(comment, width=85) or [""]
+    text_h = len(lines) * 22
 
-    tema = str(row.get("Tema", "")) if pd.notna(row.get("Tema")) else ""
-    subtema = str(row.get("Subtema", "")) if pd.notna(row.get("Subtema")) else ""
+    tema_raw = row.get("Tema", "")
+    tema = str(tema_raw).strip() if pd.notna(tema_raw) and str(tema_raw).strip() not in ("", "nan") else ""
+    sub_raw = row.get("Subtema", "")
+    subtema = str(sub_raw).strip() if pd.notna(sub_raw) and str(sub_raw).strip() not in ("", "nan") else ""
     sub_tags = [s.strip() for s in subtema.split(",") if s.strip()]
     has_tags = bool(tema or sub_tags)
 
     meta_parts = []
     post_date = row.get("Fecha de publicación")
     if pd.notna(post_date):
-        meta_parts.append("Post: {}".format(str(post_date)[:16]))
+        meta_parts.append("📅 Post: {}".format(str(post_date)[:16]))
     comm_date = row.get("Fecha del comentario")
     if pd.notna(comm_date):
-        meta_parts.append("Comentario: {}".format(str(comm_date)[:16]))
+        meta_parts.append("💬 {}".format(str(comm_date)[:16]))
     likes = row.get("Likes")
     if pd.notna(likes) and str(likes) != "None":
-        meta_parts.append("Likes: {}".format(likes))
+        meta_parts.append("👍 {}".format(int(likes)))
 
-    H = 60 + text_h + 20 + (24 if meta_parts else 0) + (30 if has_tags else 0) + PAD
-    img = Image.new("RGB", (W, H), "white")
+    H = 80 + text_h + 28 + (28 if meta_parts else 0) + (36 if has_tags else 0) + PAD + 10
+    img = Image.new("RGBA", (W, H), (255, 255, 255, 255))
     draw = ImageDraw.Draw(img)
 
-    # borda lateral
-    draw.rectangle([0, 0, 5, H], fill=accent_rgb)
+    # card background with rounded corners and shadow
+    draw.rounded_rectangle([2, 2, W - 2, H - 2], radius=RADIUS,
+                           fill=(255, 255, 255), outline=(220, 220, 220), width=1)
 
-    # header
-    draw.text((PAD + INNER, 16), author, fill=(24, 46, 76), font=font_title)
-    nw = draw.textlength(network, font=font_head)
-    draw.text((W - PAD - nw, 18), network, fill=(120, 120, 120), font=font_head)
+    # left accent bar
+    draw.rounded_rectangle([0, 0, 7, H], radius=4, fill=accent_rgb)
 
-    # sentiment badge
-    sw = draw.textlength(sent, font=font_b)
-    bx = W - PAD - sw - 16
-    draw.rounded_rectangle([bx, 40, bx + sw + 16, 58], radius=10, fill=bg_rgb, outline=accent_rgb)
-    draw.text((bx + 8, 41), sent, fill=accent_rgb, font=font_b)
+    # header area
+    y = PAD
+    draw.text((PAD + 12, y), author, fill=(24, 46, 76), font=font_title)
 
-    # comment
-    y = 66
+    # network badge (right side)
+    net_icon = _NETWORK_ICONS.get(network.upper(), "🌐")
+    net_text = network
+    nw = draw.textlength(net_text, font=font_net)
+    nx = W - PAD - nw - 16
+    draw.text((nx, y + 3), net_text, fill=(100, 100, 100), font=font_net)
+
+    # sentiment badge (below network, right aligned)
+    y_sent = y + 28
+    sw = draw.textlength(sent, font=font_sent)
+    sx = W - PAD - sw - 24
+    draw.rounded_rectangle([sx, y_sent, sx + sw + 24, y_sent + 26],
+                           radius=13, fill=bg_rgb, outline=accent_rgb, width=2)
+    draw.text((sx + 12, y_sent + 5), sent, fill=accent_rgb, font=font_sent)
+
+    # comment text
+    y = y_sent + 38
     for line in lines:
-        draw.text((PAD + INNER, y), line, fill=(51, 51, 51), font=font)
-        y += 20
+        draw.text((PAD + 12, y), line, fill=(60, 60, 60), font=font)
+        y += 22
 
-    y += 8
-    draw.line([(PAD + INNER, y), (W - PAD, y)], fill=(230, 230, 230))
-    y += 8
+    y += 10
 
     # tags
     if has_tags:
-        tx = PAD + INNER
+        tx = PAD + 12
         if tema:
-            tw = draw.textlength(tema, font=font_sm)
-            draw.rounded_rectangle([tx, y, tx + tw + 16, y + 22], radius=11,
-                                   fill=(248, 215, 227), outline=(232, 160, 184))
-            draw.text((tx + 8, y + 4), tema, fill=(167, 50, 83), font=font_sm)
-            tx += tw + 24
+            tw = draw.textlength(tema, font=font_tag)
+            draw.rounded_rectangle([tx, y, tx + tw + 20, y + 26],
+                                   radius=13, fill=(248, 215, 227), outline=(232, 160, 184))
+            draw.text((tx + 10, y + 5), tema, fill=(167, 50, 83), font=font_tag)
+            tx += tw + 28
         for st_tag in sub_tags:
-            tw = draw.textlength(st_tag, font=font_sm)
-            draw.rounded_rectangle([tx, y, tx + tw + 16, y + 22], radius=11,
-                                   fill=(212, 244, 248), outline=(160, 220, 230))
-            draw.text((tx + 8, y + 4), st_tag, fill=(10, 126, 140), font=font_sm)
-            tx += tw + 24
-        y += 30
+            tw = draw.textlength(st_tag, font=font_tag)
+            draw.rounded_rectangle([tx, y, tx + tw + 20, y + 26],
+                                   radius=13, fill=(212, 244, 248), outline=(160, 220, 230))
+            draw.text((tx + 10, y + 5), st_tag, fill=(10, 126, 140), font=font_tag)
+            tx += tw + 28
+        y += 34
 
-    # meta
+    # separator
+    draw.line([(PAD + 12, y), (W - PAD, y)], fill=(235, 235, 235), width=1)
+    y += 10
+
+    # metadata
     if meta_parts:
-        draw.text((PAD + INNER, y), "  ·  ".join(meta_parts), fill=(160, 160, 160), font=font_sm)
+        draw.text((PAD + 12, y), "  ·  ".join(meta_parts), fill=(150, 150, 150), font=font_meta)
 
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    img = img.convert("RGB")
+    img.save(buf, format="PNG", quality=95)
     return buf.getvalue()
 
 
