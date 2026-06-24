@@ -1551,6 +1551,14 @@ with tab_clasif:
         page_slice = filtered.iloc[start:start + page_size].copy()
 
         # ── Cards ──────────────────────────────────────────────────────────
+        st.markdown(
+            '<style>'
+            '[data-testid="stSelectbox"] div[data-testid="stMarkdownContainer"]:has(+ div select option[value="Remover"]) + div > div,'
+            '.remove-select > div > div > div'
+            '{background:#e74c3c !important;color:white !important;border:none !important;border-radius:12px !important}'
+            '</style>',
+            unsafe_allow_html=True,
+        )
         for _ci, (_idx, _row) in enumerate(page_slice.iterrows()):
             _net = str(_row.get("Red", ""))
             _icon = _NETWORK_ICONS.get(_net.upper(), "🌐")
@@ -1660,20 +1668,11 @@ with tab_clasif:
                     _del_items.append(_new_tema)
                 _del_items.extend(_sub_tags)
                 if _del_items:
-                    _rm_key = "card_rm_{}_{}".format(page_num, _ci)
-                    _e4.markdown(
-                        '<style>'
-                        '[data-testid="stSelectbox"]:has(#{})'
-                        ' > div > div {{background:#e74c3c;color:white;border:none;border-radius:12px}}'
-                        '[data-testid="stSelectbox"]:has(#{}) svg {{fill:white}}'
-                        '</style>'.format(_rm_key, _rm_key),
-                        unsafe_allow_html=True,
-                    )
                     _remove_opts = [_t("remove_tag")] + _del_items
                     _to_remove = _e4.selectbox(
                         _t("remove_tag"),
                         _remove_opts,
-                        key=_rm_key,
+                        key="card_rm_{}_{}".format(page_num, _ci),
                     )
                     if _to_remove != _t("remove_tag"):
                         if _to_remove == _new_tema:
