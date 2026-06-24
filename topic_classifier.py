@@ -363,6 +363,18 @@ DICTIONARIES = {
                 "black friday", "cyber monday", "cumpleañeros", "vinculo",
                 "dale play", "se te nota la pasión", "casa falabella",
             ],
+            "Eventos": [
+                # PT-BR
+                "evento", "corrida", "maratona", "carrera", "festival",
+                "show", "feira", "exposição", "conferência", "congresso",
+                "workshop", "palestra", "meetup", "encontro", "inauguração",
+                "cerimônia", "celebração", "aniversário", "premiação",
+                # ES
+                "evento", "carrera", "maratón", "festival", "feria",
+                "exposición", "conferencia", "congreso", "taller",
+                "charla", "encuentro", "inauguración", "ceremonia",
+                "celebración", "aniversario", "premiación",
+            ],
             "Educação financeira": [
                 # PT-BR
                 "educação financeira", "finanças pessoais", "orçamento",
@@ -407,6 +419,7 @@ _TOPIC_TRANSLATIONS = {
         "Taxas e cobranças": {"es": "Tasas y cobros"},
         "App e canais digitais": {"es": "App y canales digitales"},
         "Acciones": {"es": "Acciones"},
+        "Eventos": {"es": "Eventos"},
         "Educação financeira": {"es": "Educación financiera"},
     },
     "politica_br": {

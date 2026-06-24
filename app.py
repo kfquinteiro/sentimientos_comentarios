@@ -1524,18 +1524,46 @@ with tab_clasif:
                 if pd.notna(_likes) and str(_likes) != "None":
                     _m3.caption("👍 {}".format(_likes))
 
-                _t1, _t2 = st.columns(2)
-                _new_tema = _t1.selectbox(
+                _new_tema = st.selectbox(
                     _t("topic_label"),
                     topic_list,
                     index=topic_list.index(_tema_cur) if _tema_cur in topic_list else 0,
                     key="card_tema_{}_{}".format(page_num, _ci),
                 )
-                _new_subtema = _t2.text_input(
+
+                _sub_tags = [s.strip() for s in _subtema_cur.split(",") if s.strip()]
+                _tag_html = " ".join(
+                    '<span style="display:inline-block;background:#eef2f7;border:1px solid #ccd;'
+                    'border-radius:4px;padding:2px 8px;margin:2px;font-size:0.85rem">'
+                    '{}</span>'.format(t) for t in _sub_tags
+                ) if _sub_tags else ""
+                if _tag_html:
+                    st.markdown(_tag_html, unsafe_allow_html=True)
+
+                _sub_key = "card_sub_{}_{}".format(page_num, _ci)
+                _new_sub_input = st.text_input(
                     _t("subtopic_label"),
-                    value=_subtema_cur,
-                    key="card_sub_{}_{}".format(page_num, _ci),
+                    value="",
+                    key=_sub_key,
+                    placeholder="+ subtema",
+                    label_visibility="collapsed",
                 )
+                if _new_sub_input.strip():
+                    _sub_tags.append(_new_sub_input.strip())
+                    _new_subtema = ", ".join(_sub_tags)
+                else:
+                    _new_subtema = ", ".join(_sub_tags) if _sub_tags else ""
+
+                if _sub_tags:
+                    _remove_opts = ["—"] + _sub_tags
+                    _to_remove = st.selectbox(
+                        "🗑️", _remove_opts,
+                        key="card_rm_{}_{}".format(page_num, _ci),
+                        label_visibility="collapsed",
+                    )
+                    if _to_remove != "—":
+                        _sub_tags = [s for s in _sub_tags if s != _to_remove]
+                        _new_subtema = ", ".join(_sub_tags) if _sub_tags else ""
 
                 _a1, _a2, _a3 = st.columns([2, 2, 6])
                 if _link and pd.notna(_link):
