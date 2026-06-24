@@ -1671,15 +1671,16 @@ with tab_clasif:
             )
 
             with st.container(border=True):
+                st.markdown(_card_html, unsafe_allow_html=True)
+
+                import base64 as _b64
                 _png_bytes = _generate_card_png(_row)
-                _top1, _top2 = st.columns([6, 1])
-                _top1.markdown(_card_html, unsafe_allow_html=True)
-                _top2.download_button(
-                    "📥",
-                    data=_png_bytes,
-                    file_name="mencion_{}_{}.png".format(_autor[:20], _ci),
-                    mime="image/png",
-                    key="card_png_{}_{}".format(page_num, _ci),
+                _png_b64 = _b64.b64encode(_png_bytes).decode()
+                st.markdown(
+                    '<a href="data:image/png;base64,{}" download="mencion_{}_{}.png" '
+                    'style="font-size:0.78rem;color:#09B7E9;text-decoration:none">'
+                    '📥 {}</a>'.format(_png_b64, _autor[:20], _ci, _t("download_png")),
+                    unsafe_allow_html=True,
                 )
 
                 st.markdown(
@@ -1687,8 +1688,8 @@ with tab_clasif:
                     unsafe_allow_html=True,
                 )
 
-                _e1, _e2, _e3, _e4 = st.columns(4)
-                _new_sent = _e1.selectbox(
+                _e1, _e2, _e3, _e4, _e5 = st.columns([2, 2, 2, 1, 2])
+                _new_sent = _e5.selectbox(
                     _t("sentiment_label"),
                     _SENT_OPTIONS_DISPLAY,
                     index=_SENT_OPTIONS_DISPLAY.index(_sent_disp) if _sent_disp in _SENT_OPTIONS_DISPLAY else 1,
@@ -1696,7 +1697,7 @@ with tab_clasif:
                 )
                 _tema_opts = ["—"] + topic_list
                 _tema_idx = _tema_opts.index(_tema_cur) if _tema_cur in _tema_opts else 0
-                _new_tema_sel = _e2.selectbox(
+                _new_tema_sel = _e1.selectbox(
                     _t("topic_label"),
                     _tema_opts,
                     index=_tema_idx,
@@ -1706,14 +1707,14 @@ with tab_clasif:
                 _known_subs = _get_known_subtemas(sel_dict_key, _new_tema or _tema_cur)
                 _known_opts = ["—"] + [s for s in _known_subs if s not in _sub_tags]
                 if len(_known_opts) > 1:
-                    _pick_sub = _e3.selectbox(
+                    _pick_sub = _e2.selectbox(
                         _t("subtopic_label"),
                         _known_opts,
                         key="card_subpick_{}_{}".format(page_num, _ci),
                     )
                     if _pick_sub != "—" and _pick_sub not in _sub_tags:
                         _sub_tags.append(_pick_sub)
-                _new_sub_input = _e3.text_input(
+                _new_sub_input = _e2.text_input(
                     "+ " + _t("subtopic_label") if len(_known_opts) > 1 else _t("subtopic_label"),
                     value="",
                     key="card_sub_{}_{}".format(page_num, _ci),
@@ -1728,7 +1729,7 @@ with tab_clasif:
                 _del_items.extend(_sub_tags)
                 if _del_items:
                     _remove_opts = [_t("remove_tag")] + _del_items
-                    _to_remove = _e4.selectbox(
+                    _to_remove = _e3.selectbox(
                         _t("remove_tag"),
                         _remove_opts,
                         key="card_rm_{}_{}".format(page_num, _ci),
