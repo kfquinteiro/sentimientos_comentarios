@@ -30,9 +30,48 @@ INPUT_DIR = os.path.join(PROJECT_DIR, "input")
 RUNS_DIR = os.path.join(PROJECT_DIR, "runs")
 CURRENT_RUN_DIR = os.path.join(RUNS_DIR, "current")
 UPLOADS_DIR = os.path.join(PROJECT_DIR, "uploads")
+SUBTEMAS_DIR = os.path.join(PROJECT_DIR, "subtemas")
 
 os.makedirs(RUNS_DIR, exist_ok=True)
 os.makedirs(UPLOADS_DIR, exist_ok=True)
+os.makedirs(SUBTEMAS_DIR, exist_ok=True)
+
+
+def _subtemas_path(dict_key):
+    return os.path.join(SUBTEMAS_DIR, "{}.json".format(dict_key))
+
+
+def _load_subtemas(dict_key):
+    import json as _json
+    path = _subtemas_path(dict_key)
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return _json.load(f)
+    return {}
+
+
+def _save_subtemas(dict_key, data):
+    import json as _json
+    path = _subtemas_path(dict_key)
+    with open(path, "w", encoding="utf-8") as f:
+        _json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _add_subtemas_to_dict(dict_key, tema, subtemas):
+    if not subtemas or not tema:
+        return
+    data = _load_subtemas(dict_key)
+    existing = set(data.get(tema, []))
+    for s in subtemas:
+        if s.strip():
+            existing.add(s.strip())
+    data[tema] = sorted(existing)
+    _save_subtemas(dict_key, data)
+
+
+def _get_known_subtemas(dict_key, tema):
+    data = _load_subtemas(dict_key)
+    return data.get(tema, [])
 UPLOADED_BASE_FILENAME = "base_comentarios.xlsx"
 FINISHED_STATUSES = {"done", "error", "timeout", "skipped"}
 
@@ -1655,11 +1694,22 @@ with tab_clasif:
                     key="card_tema_{}_{}".format(page_num, _ci),
                 )
                 _new_tema = "" if _new_tema_sel == "—" else _new_tema_sel
+                _known_subs = _get_known_subtemas(sel_dict_key, _new_tema or _tema_cur)
+                _known_opts = ["—"] + [s for s in _known_subs if s not in _sub_tags]
+                if len(_known_opts) > 1:
+                    _pick_sub = _e3.selectbox(
+                        _t("subtopic_label"),
+                        _known_opts,
+                        key="card_subpick_{}_{}".format(page_num, _ci),
+                    )
+                    if _pick_sub != "—" and _pick_sub not in _sub_tags:
+                        _sub_tags.append(_pick_sub)
                 _new_sub_input = _e3.text_input(
-                    _t("subtopic_label"),
+                    "+ " + _t("subtopic_label") if len(_known_opts) > 1 else _t("subtopic_label"),
                     value="",
                     key="card_sub_{}_{}".format(page_num, _ci),
-                    placeholder="+ subtema ↵",
+                    placeholder="+ novo ↵",
+                    label_visibility="collapsed" if len(_known_opts) > 1 else "visible",
                 )
                 if _new_sub_input.strip() and _new_sub_input.strip() not in _sub_tags:
                     _sub_tags.append(_new_sub_input.strip())
@@ -1682,25 +1732,29 @@ with tab_clasif:
                 _new_subtema = ", ".join(_sub_tags) if _sub_tags else ""
 
                 _png_bytes = _generate_card_png(_row)
-                _b1, _b2, _b3 = st.columns([1, 1, 4], gap="small")
-                if _link and pd.notna(_link):
-                    _b1.link_button("🔗 " + _t("open_original"), str(_link))
-                _b2.download_button(
-                    "📥 " + _t("download_png"),
-                    data=_png_bytes,
-                    file_name="mencion_{}_{}.png".format(_autor[:20], _ci),
-                    mime="image/png",
-                    key="card_png_{}_{}".format(page_num, _ci),
-                )
-
                 _real_sent = _SENT_FROM_DISPLAY.get(_new_sent, "Neutral")
                 _changed = (
                     _real_sent != _sent_cur
                     or _new_tema != _tema_cur
                     or _new_subtema != _subtema_cur
                 )
+
+                _n_btns = 1 + (1 if _link and pd.notna(_link) else 0) + (1 if _changed else 0)
+                _btn_cols = st.columns(_n_btns)
+                _bi = 0
+                if _link and pd.notna(_link):
+                    _btn_cols[_bi].link_button("🔗 " + _t("open_original"), str(_link))
+                    _bi += 1
+                _btn_cols[_bi].download_button(
+                    "📥 " + _t("download_png"),
+                    data=_png_bytes,
+                    file_name="mencion_{}_{}.png".format(_autor[:20], _ci),
+                    mime="image/png",
+                    key="card_png_{}_{}".format(page_num, _ci),
+                )
+                _bi += 1
                 if _changed:
-                    if _b3.button(
+                    if _btn_cols[_bi].button(
                         "💾 " + _t("save_changes"),
                         key="card_save_{}_{}".format(page_num, _ci),
                         type="primary",
@@ -1708,6 +1762,8 @@ with tab_clasif:
                         clasif_df.loc[_idx, "Sentimiento"] = _real_sent
                         clasif_df.loc[_idx, "Tema"] = _new_tema
                         clasif_df.loc[_idx, "Subtema"] = _new_subtema
+                        if _new_tema and _sub_tags:
+                            _add_subtemas_to_dict(sel_dict_key, _new_tema, _sub_tags)
                         save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
                         clasif_df[save_cols].to_excel(
                             clasif_path, sheet_name="Comentarios", index=False)
