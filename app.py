@@ -1627,8 +1627,10 @@ with tab_clasif:
             _post_date = _row.get("Fecha de publicación")
             _comm_date = _row.get("Fecha del comentario")
             _link = _row.get("Link del post")
-            _tema_cur = str(_row.get("Tema", ""))
-            _subtema_cur = str(_row.get("Subtema", "")) if pd.notna(_row.get("Subtema")) else ""
+            _raw_tema = _row.get("Tema", "")
+            _tema_cur = str(_raw_tema).strip() if pd.notna(_raw_tema) and str(_raw_tema).strip() not in ("", "nan") else ""
+            _raw_sub = _row.get("Subtema", "")
+            _subtema_cur = str(_raw_sub).strip() if pd.notna(_raw_sub) and str(_raw_sub).strip() not in ("", "nan") else ""
             _sub_tags = list(dict.fromkeys(s.strip() for s in _subtema_cur.split(",") if s.strip()))
             _sent_color = _SENT_COLORS.get(_sent_cur, "#95a5a6")
             _sent_bg = _SENT_BG.get(_sent_cur, "#f2f3f4")
