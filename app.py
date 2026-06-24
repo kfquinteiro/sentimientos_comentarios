@@ -591,7 +591,7 @@ def _lang():
 
 
 def _dict_lang():
-    return st.session_state.get("dict_lang", "pt")
+    return st.session_state.get("dict_lang", _lang())
 
 
 def _t(key):
