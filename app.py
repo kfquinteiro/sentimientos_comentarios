@@ -1598,22 +1598,22 @@ with tab_clasif:
             _meta_line = "&nbsp;&nbsp;·&nbsp;&nbsp;".join(_meta_parts)
 
             _card_html = """
-            <div style="border-left:4px solid {accent};padding:4px 0 4px 16px;margin-left:4px">
+            <div style="border-left:4px solid {accent};padding:12px 16px 12px 20px;margin-left:4px">
               <div style="display:flex;align-items:center;justify-content:space-between;
-                          padding:0 0 6px">
-                <div>
+                          padding:0 0 10px">
+                <div style="display:flex;align-items:center;gap:14px">
                   <span style="font-size:1.05rem;font-weight:700;color:#182E4C">{author}</span>
-                  <span style="margin-left:12px">{network_html}</span>
+                  {network_html}
                 </div>
                 <span style="background:{sent_bg};color:{accent};border:1px solid {accent};
                        border-radius:14px;padding:4px 14px;font-size:0.85rem;font-weight:700">
                   {sentiment}
                 </span>
               </div>
-              <div style="font-size:0.95rem;line-height:1.5;color:#333;padding:6px 0 10px;
+              <div style="font-size:0.95rem;line-height:1.6;color:#333;padding:4px 0 12px;
                           white-space:pre-wrap">{comment}</div>
-              <div style="padding:2px 0 8px">{tags}</div>
-              <div style="font-size:0.78rem;color:#999;padding:2px 0">{meta}</div>
+              <div style="padding:2px 0 10px">{tags}</div>
+              <div style="font-size:0.78rem;color:#999;padding:2px 0 6px">{meta}</div>
             </div>
             """.format(
                 accent=_sent_color, sent_bg=_sent_bg,
