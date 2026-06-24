@@ -27,6 +27,15 @@ _CHART_LABELS = {
         "quantity": "Quantidade",
         "comments": "Comentários",
         "pct_negative": "% Negativo",
+        "pct": "%",
+        "monthly_sentiment_pct": "Sentimento por mês (%)",
+        "negative_drivers": "Principais geradores de negatividade",
+        "sentiment_pct_by_topic": "Sentimento por tema (%)",
+        "topic_evolution": "Evolução de temas ao longo do tempo",
+        "network_sentiment_pct": "Sentimento por rede (%)",
+        "sentiment_by_subtheme": "Sentimento por subtema",
+        "negative_count": "Negativos",
+        "subtheme": "Subtema",
     },
     "es": {
         "general_sentiment": "Sentimiento general",
@@ -47,6 +56,15 @@ _CHART_LABELS = {
         "quantity": "Cantidad",
         "comments": "Comentarios",
         "pct_negative": "% Negativo",
+        "pct": "%",
+        "monthly_sentiment_pct": "Sentimiento por mes (%)",
+        "negative_drivers": "Principales generadores de negatividad",
+        "sentiment_pct_by_topic": "Sentimiento por tema (%)",
+        "topic_evolution": "Evolución de temas en el tiempo",
+        "network_sentiment_pct": "Sentimiento por red (%)",
+        "sentiment_by_subtheme": "Sentimiento por subtema",
+        "negative_count": "Negativos",
+        "subtheme": "Subtema",
     },
 }
 
@@ -348,6 +366,144 @@ def heatmap_tema_red(df, tema_col="tema", lang="pt"):
         xaxis_title=_cl("network", lang),
         yaxis_title=_cl("topic", lang),
     )
+    return fig
+
+
+def monthly_sentiment_pct(df, lang="pt"):
+    with_date = df.dropna(subset=["fecha_comentario"]).copy()
+    if with_date.empty:
+        return None
+    with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
+    ct = with_date.groupby(["mes", "sentimiento"]).size().unstack(fill_value=0)
+    for s in SENTIMENT_ORDER:
+        if s not in ct.columns:
+            ct[s] = 0
+    pct = ct.div(ct.sum(axis=1), axis=0).multiply(100).round(1)
+    pct = pct[SENTIMENT_ORDER].reset_index().melt(id_vars="mes", var_name="sentimiento",
+                                                    value_name=_cl("pct", lang))
+    fig = px.bar(
+        pct, x="mes", y=_cl("pct", lang), color="sentimiento",
+        barmode="stack", category_orders={"sentimiento": SENTIMENT_ORDER},
+        color_discrete_map=SENTIMENT_COLORS,
+        title=_cl("monthly_sentiment_pct", lang),
+        labels={"mes": _cl("month", lang), "sentimiento": _cl("sentiment", lang)},
+        text=_cl("pct", lang),
+    )
+    fig.update_traces(texttemplate="%{text:.0f}%", textposition="inside")
+    fig.update_layout(yaxis_title="%", yaxis_range=[0, 100])
+    return fig
+
+
+def negative_drivers(df, tema_col="tema", lang="pt"):
+    if tema_col not in df.columns:
+        return None
+    filtered = df[~df[tema_col].isin(["Otros", "Outros"])]
+    neg = filtered[filtered["sentimiento"] == "Negativo"]
+    if neg.empty:
+        return None
+    counts = neg[tema_col].value_counts().reset_index()
+    counts.columns = [_cl("topic", lang), _cl("negative_count", lang)]
+    fig = px.bar(
+        counts, y=_cl("topic", lang), x=_cl("negative_count", lang),
+        orientation="h", color_discrete_sequence=["#e74c3c"],
+        title=_cl("negative_drivers", lang),
+    )
+    fig.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False)
+    return fig
+
+
+def sentiment_pct_by_topic(df, tema_col="tema", lang="pt"):
+    if tema_col not in df.columns:
+        return None
+    filtered = df[~df[tema_col].isin(["Otros", "Outros"])]
+    ct = filtered.groupby([tema_col, "sentimiento"]).size().unstack(fill_value=0)
+    for s in SENTIMENT_ORDER:
+        if s not in ct.columns:
+            ct[s] = 0
+    pct = ct.div(ct.sum(axis=1), axis=0).multiply(100).round(1)
+    pct = pct[SENTIMENT_ORDER].reset_index().melt(id_vars=tema_col, var_name="sentimiento",
+                                                    value_name=_cl("pct", lang))
+    fig = px.bar(
+        pct, y=tema_col, x=_cl("pct", lang), color="sentimiento",
+        barmode="stack", orientation="h",
+        category_orders={"sentimiento": SENTIMENT_ORDER},
+        color_discrete_map=SENTIMENT_COLORS,
+        title=_cl("sentiment_pct_by_topic", lang),
+        labels={tema_col: _cl("topic", lang), "sentimiento": _cl("sentiment", lang)},
+        text=_cl("pct", lang),
+    )
+    fig.update_traces(texttemplate="%{text:.0f}%", textposition="inside")
+    fig.update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title="%", xaxis_range=[0, 100])
+    return fig
+
+
+def topic_evolution(df, tema_col="tema", lang="pt"):
+    with_date = df.dropna(subset=["fecha_comentario"]).copy()
+    if with_date.empty or tema_col not in with_date.columns:
+        return None
+    filtered = with_date[~with_date[tema_col].isin(["Otros", "Outros"])]
+    if filtered.empty:
+        return None
+    filtered["mes"] = filtered["fecha_comentario"].dt.to_period("M").astype(str)
+    agg = filtered.groupby(["mes", tema_col]).size().reset_index(name=_cl("quantity", lang))
+    fig = px.area(
+        agg, x="mes", y=_cl("quantity", lang), color=tema_col,
+        title=_cl("topic_evolution", lang),
+        labels={"mes": _cl("month", lang), tema_col: _cl("topic", lang)},
+    )
+    return fig
+
+
+def network_sentiment_pct(df, lang="pt"):
+    if "red" not in df.columns:
+        return None
+    import plotly.graph_objects as go
+    ct = df.groupby(["red", "sentimiento"]).size().unstack(fill_value=0)
+    for s in SENTIMENT_ORDER:
+        if s not in ct.columns:
+            ct[s] = 0
+    pct = ct.div(ct.sum(axis=1), axis=0).multiply(100).round(1)
+    totals = ct.sum(axis=1)
+    fig = go.Figure()
+    for sent in SENTIMENT_ORDER:
+        fig.add_trace(go.Bar(
+            y=pct.index, x=pct[sent], name=sent,
+            orientation="h", marker_color=SENTIMENT_COLORS[sent],
+            text=["{:.0f}%".format(v) for v in pct[sent]],
+            textposition="inside",
+            customdata=totals,
+            hovertemplate="%{y}: %{x:.1f}% (%{customdata} total)<extra>%{fullData.name}</extra>",
+        ))
+    fig.update_layout(
+        barmode="stack", title=_cl("network_sentiment_pct", lang),
+        xaxis_title="%", xaxis_range=[0, 100],
+        yaxis_title=_cl("network", lang),
+    )
+    return fig
+
+
+def sentiment_by_subtheme(df, lang="pt"):
+    if "Subtema" not in df.columns and "subtema" not in df.columns:
+        return None
+    sub_col = "Subtema" if "Subtema" in df.columns else "subtema"
+    exploded = df.dropna(subset=[sub_col]).copy()
+    exploded[sub_col] = exploded[sub_col].str.split(",")
+    exploded = exploded.explode(sub_col)
+    exploded[sub_col] = exploded[sub_col].str.strip()
+    exploded = exploded[exploded[sub_col] != ""]
+    if exploded.empty:
+        return None
+    sent_col = "sentimiento" if "sentimiento" in exploded.columns else "Sentimiento"
+    agg = exploded.groupby([sub_col, sent_col]).size().reset_index(name=_cl("quantity", lang))
+    fig = px.bar(
+        agg, y=sub_col, x=_cl("quantity", lang), color=sent_col,
+        barmode="stack", orientation="h",
+        category_orders={sent_col: SENTIMENT_ORDER},
+        color_discrete_map=SENTIMENT_COLORS,
+        title=_cl("sentiment_by_subtheme", lang),
+        labels={sub_col: _cl("subtheme", lang), sent_col: _cl("sentiment", lang)},
+    )
+    fig.update_layout(yaxis={"categoryorder": "total ascending"})
     return fig
 
 
