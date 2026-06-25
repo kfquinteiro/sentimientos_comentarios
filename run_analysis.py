@@ -82,6 +82,10 @@ def main(run_dir, engine="local"):
         df["sentimiento"] = labels
         df["confianza"] = scores
 
+        import blocklist
+        df, bl_changes = blocklist.apply_blocklist(df)
+        state["blocklist_changes"] = bl_changes
+
         state["stage"] = "generando_reporte"
         save_analysis_state(run_dir, state)
 
