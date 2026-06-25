@@ -6,5 +6,4 @@ streamlit
 pysentimiento
 plotly
 anthropic
-Pillow
 wordcloud

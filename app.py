@@ -1,17 +1,13 @@
 """Interfaz: subir la hoja de cálculo de posts y orquestar la exportación de
 comentarios vía ExportComments."""
-import base64
 import io
 import os
 import re
 import shutil
 import subprocess
 import sys
-import textwrap
 import zipfile
 from datetime import datetime
-
-from PIL import Image, ImageDraw, ImageFont
 
 import pandas as pd
 import streamlit as st
@@ -32,10 +28,32 @@ RUNS_DIR = os.path.join(PROJECT_DIR, "runs")
 CURRENT_RUN_DIR = os.path.join(RUNS_DIR, "current")
 UPLOADS_DIR = os.path.join(PROJECT_DIR, "uploads")
 SUBTEMAS_DIR = os.path.join(PROJECT_DIR, "subtemas")
+BACKUPS_DIR = os.path.join(PROJECT_DIR, "backups")
 
 os.makedirs(RUNS_DIR, exist_ok=True)
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 os.makedirs(SUBTEMAS_DIR, exist_ok=True)
+os.makedirs(BACKUPS_DIR, exist_ok=True)
+
+
+def _backup_to_git(src_path, label="clasificacion"):
+    try:
+        dst = os.path.join(BACKUPS_DIR, "{}.xlsx".format(label))
+        shutil.copy2(src_path, dst)
+        subprocess.run(
+            ["git", "add", dst],
+            cwd=PROJECT_DIR, capture_output=True, timeout=10,
+        )
+        subprocess.run(
+            ["git", "commit", "-m", "auto-backup {}".format(label)],
+            cwd=PROJECT_DIR, capture_output=True, timeout=10,
+        )
+        subprocess.run(
+            ["git", "push"],
+            cwd=PROJECT_DIR, capture_output=True, timeout=30,
+        )
+    except Exception:
+        pass
 
 
 def _subtemas_path(dict_key):
@@ -1376,156 +1394,6 @@ _SENT_COLORS = {"Positivo": "#2ecc71", "Neutral": "#95a5a6", "Negativo": "#e74c3
 _SENT_BG = {"Positivo": "#eafaf1", "Neutral": "#f2f3f4", "Negativo": "#fdedec"}
 
 
-def _strip_emoji(text):
-    return re.sub(
-        "["
-        "\U0001F1E6-\U0001FAFF"
-        "\U00002600-\U000027BF"
-        "\U0000FE00-\U0000FE0F"
-        "\U00002190-\U000021FF"
-        "\U0000200D"
-        "\U0000FE0F"
-        "]+", "", text
-    ).strip()
-
-
-def _hex_to_rgb(h):
-    h = h.lstrip("#")
-    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-
-
-def _find_font(names, size):
-    import glob as _glob
-    search_dirs = [
-        "/usr/share/fonts", "/usr/local/share/fonts",
-        "C:\\Windows\\Fonts", "C:\\Users\\{}\\AppData\\Local\\Microsoft\\Windows\\Fonts".format(
-            os.environ.get("USERNAME", "")),
-    ]
-    for name in names:
-        try:
-            return ImageFont.truetype(name, size)
-        except Exception:
-            pass
-        for d in search_dirs:
-            for f in _glob.glob(os.path.join(d, "**", name), recursive=True):
-                try:
-                    return ImageFont.truetype(f, size)
-                except Exception:
-                    pass
-    return ImageFont.load_default()
-
-
-def _generate_card_png(row):
-    W, PAD = 800, 28
-    RADIUS = 16
-
-    sent = str(row.get("Sentimiento", ""))
-    accent_rgb = _hex_to_rgb(_SENT_COLORS.get(sent, "#95a5a6"))
-    bg_rgb = _hex_to_rgb(_SENT_BG.get(sent, "#f2f3f4"))
-
-    _regular = ["DejaVuSans.ttf", "SegoeUI.ttf", "arial.ttf", "Helvetica.ttf"]
-    _bold = ["DejaVuSans-Bold.ttf", "SegoeUIBold.ttf", "arialbd.ttf", "Helvetica-Bold.ttf"]
-    font = _find_font(_regular, 15)
-    font_sm = _find_font(_regular, 12)
-    font_b = _find_font(_bold, 14)
-    font_title = _find_font(_bold, 18)
-    font_net = _find_font(_bold, 13)
-    font_sent = _find_font(_bold, 13)
-    font_tag = _find_font(_bold, 12)
-    font_meta = _find_font(_regular, 11)
-
-    author = _strip_emoji(str(row.get("Autor", "")))
-    network = str(row.get("Red", ""))
-    comment = _strip_emoji(str(row.get("Comentario", "")))
-    lines = textwrap.wrap(comment, width=85) or [""]
-    text_h = len(lines) * 22
-
-    tema_raw = row.get("Tema", "")
-    tema = str(tema_raw).strip() if pd.notna(tema_raw) and str(tema_raw).strip() not in ("", "nan") else ""
-    sub_raw = row.get("Subtema", "")
-    subtema = str(sub_raw).strip() if pd.notna(sub_raw) and str(sub_raw).strip() not in ("", "nan") else ""
-    sub_tags = [s.strip() for s in subtema.split(",") if s.strip()]
-    has_tags = bool(tema or sub_tags)
-
-    meta_parts = []
-    post_date = row.get("Fecha de publicación")
-    if pd.notna(post_date):
-        meta_parts.append("📅 Post: {}".format(str(post_date)[:16]))
-    comm_date = row.get("Fecha del comentario")
-    if pd.notna(comm_date):
-        meta_parts.append("💬 {}".format(str(comm_date)[:16]))
-    likes = row.get("Likes")
-    if pd.notna(likes) and str(likes) != "None":
-        meta_parts.append("👍 {}".format(int(likes)))
-
-    H = 80 + text_h + 28 + (28 if meta_parts else 0) + (36 if has_tags else 0) + PAD + 10
-    img = Image.new("RGBA", (W, H), (255, 255, 255, 255))
-    draw = ImageDraw.Draw(img)
-
-    # card background with rounded corners and shadow
-    draw.rounded_rectangle([2, 2, W - 2, H - 2], radius=RADIUS,
-                           fill=(255, 255, 255), outline=(220, 220, 220), width=1)
-
-    # left accent bar
-    draw.rounded_rectangle([0, 0, 7, H], radius=4, fill=accent_rgb)
-
-    # header area
-    y = PAD
-    draw.text((PAD + 12, y), author, fill=(24, 46, 76), font=font_title)
-
-    # network badge (right side)
-    net_icon = _NETWORK_ICONS.get(network.upper(), "🌐")
-    net_text = network
-    nw = draw.textlength(net_text, font=font_net)
-    nx = W - PAD - nw - 16
-    draw.text((nx, y + 3), net_text, fill=(100, 100, 100), font=font_net)
-
-    # sentiment badge (below network, right aligned)
-    y_sent = y + 28
-    sw = draw.textlength(sent, font=font_sent)
-    sx = W - PAD - sw - 24
-    draw.rounded_rectangle([sx, y_sent, sx + sw + 24, y_sent + 26],
-                           radius=13, fill=bg_rgb, outline=accent_rgb, width=2)
-    draw.text((sx + 12, y_sent + 5), sent, fill=accent_rgb, font=font_sent)
-
-    # comment text
-    y = y_sent + 38
-    for line in lines:
-        draw.text((PAD + 12, y), line, fill=(60, 60, 60), font=font)
-        y += 22
-
-    y += 10
-
-    # tags
-    if has_tags:
-        tx = PAD + 12
-        if tema:
-            tw = draw.textlength(tema, font=font_tag)
-            draw.rounded_rectangle([tx, y, tx + tw + 20, y + 26],
-                                   radius=13, fill=(248, 215, 227), outline=(232, 160, 184))
-            draw.text((tx + 10, y + 5), tema, fill=(167, 50, 83), font=font_tag)
-            tx += tw + 28
-        for st_tag in sub_tags:
-            tw = draw.textlength(st_tag, font=font_tag)
-            draw.rounded_rectangle([tx, y, tx + tw + 20, y + 26],
-                                   radius=13, fill=(212, 244, 248), outline=(160, 220, 230))
-            draw.text((tx + 10, y + 5), st_tag, fill=(10, 126, 140), font=font_tag)
-            tx += tw + 28
-        y += 34
-
-    # separator
-    draw.line([(PAD + 12, y), (W - PAD, y)], fill=(235, 235, 235), width=1)
-    y += 10
-
-    # metadata
-    if meta_parts:
-        draw.text((PAD + 12, y), "  ·  ".join(meta_parts), fill=(150, 150, 150), font=font_meta)
-
-    buf = io.BytesIO()
-    img = img.convert("RGB")
-    img.save(buf, format="PNG", quality=95)
-    return buf.getvalue()
-
 
 def _resolve_clasif_path():
     """Retorna (path, brand_mapping) do arquivo ativo para edição."""
@@ -1733,16 +1601,6 @@ with tab_clasif:
             with st.container(border=True):
                 st.markdown(_card_html, unsafe_allow_html=True)
 
-                if st.button("📥 PNG", key="card_png_{}_{}".format(page_num, _ci)):
-                    _png_bytes = _generate_card_png(_row)
-                    st.download_button(
-                        "💾 " + _t("download_png"),
-                        data=_png_bytes,
-                        file_name="mencion_{}_{}.png".format(_autor[:20], _ci),
-                        mime="image/png",
-                        key="card_dl_{}_{}".format(page_num, _ci),
-                    )
-
                 st.markdown(
                     '<div style="border-top:1px solid #eee;margin:4px 0 8px"></div>',
                     unsafe_allow_html=True,
@@ -1823,6 +1681,7 @@ with tab_clasif:
             save_cols = [c for c in clasif_df.columns if c != "_sent_display"]
             clasif_df[save_cols].to_excel(
                 clasif_path, sheet_name="Comentarios", index=False)
+            _backup_to_git(clasif_path)
             st.rerun()
 
         _pb1, _pb2, _pb3 = st.columns(3)
