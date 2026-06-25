@@ -315,7 +315,7 @@ def bubble_matrix_tema_sentimiento(df, tema_col="tema", lang="pt"):
         labels={tema_col: _cl("topic", lang), "sentimiento": _cl("sentiment", lang),
                 _cl("quantity", lang): _cl("comments", lang)},
     )
-    fig.update_layout(showlegend=False, yaxis={"categoryorder": "total ascending"})
+    fig.update_layout(showlegend=False, yaxis={"categoryorder": "total ascending"}, margin=dict(l=200))
     return fig
 
 
@@ -414,7 +414,7 @@ def negative_drivers(df, tema_col="tema", lang="pt"):
         orientation="h", color_discrete_sequence=["#e74c3c"],
         title=_cl("negative_drivers", lang),
     )
-    fig.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False)
+    fig.update_layout(yaxis={"categoryorder": "total ascending"}, showlegend=False, margin=dict(l=200))
     return fig
 
 
@@ -439,7 +439,7 @@ def sentiment_pct_by_topic(df, tema_col="tema", lang="pt"):
         text=_cl("pct", lang),
     )
     fig.update_traces(texttemplate="%{text:.0f}%", textposition="inside")
-    fig.update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title="%", xaxis_range=[0, 100])
+    fig.update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title="%", xaxis_range=[0, 100], margin=dict(l=200))
     return fig
 
 
@@ -526,7 +526,12 @@ def sentiment_by_subtheme(df, lang="pt"):
         title=_cl("sentiment_by_subtheme", lang),
         labels={sub_col: _cl("subtheme", lang), sent_col: _cl("sentiment", lang)},
     )
-    fig.update_layout(yaxis={"categoryorder": "total ascending"})
+    n_subs = agg[sub_col].nunique()
+    fig.update_layout(
+        yaxis={"categoryorder": "total ascending"},
+        margin=dict(l=200),
+        height=max(400, n_subs * 30 + 100),
+    )
     return fig
 
 
