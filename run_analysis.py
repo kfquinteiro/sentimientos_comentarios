@@ -59,6 +59,11 @@ def main(run_dir, engine="local"):
 
     try:
         df, read_errors = cons.build_consolidated(run_dir)
+
+        import blocklist
+        df, removed = blocklist.apply_blocklist(df)
+        state["blocklist_removed"] = removed
+
         state["total"] = len(df)
         state["read_errors"] = read_errors
 
@@ -81,10 +86,6 @@ def main(run_dir, engine="local"):
 
         df["sentimiento"] = labels
         df["confianza"] = scores
-
-        import blocklist
-        df, bl_changes = blocklist.apply_blocklist(df)
-        state["blocklist_changes"] = bl_changes
 
         state["stage"] = "generando_reporte"
         save_analysis_state(run_dir, state)
