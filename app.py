@@ -1731,14 +1731,15 @@ with tab_ipds:
     if ipds_file is not None:
         try:
             if ipds_file.name.lower().endswith(".csv"):
-                ipds_raw = pd.read_csv(ipds_file)
-            else:
-                ipds_raw = sr.read_raw_file(
-                    os.path.join(INPUT_DIR, ipds_file.name))
-                with open(os.path.join(INPUT_DIR, ipds_file.name), "wb") as f:
+                ipds_raw = pd.read_csv(ipds_file, sep=";", encoding="utf-8-sig")
+                if len(ipds_raw.columns) < 3:
                     ipds_file.seek(0)
+                    ipds_raw = pd.read_csv(ipds_file, encoding="utf-8-sig")
+            else:
+                save_path = os.path.join(INPUT_DIR, ipds_file.name)
+                with open(save_path, "wb") as f:
                     f.write(ipds_file.getbuffer())
-                ipds_raw = sr.read_raw_file(os.path.join(INPUT_DIR, ipds_file.name))
+                ipds_raw = sr.read_raw_file(save_path)
             ipds_raw = ipds_raw.dropna(axis=1, how="all")
             ipds_raw.columns = [str(c).strip() for c in ipds_raw.columns]
             ip_cols = ipds_raw.columns.tolist()
@@ -1748,72 +1749,113 @@ with tab_ipds:
             ip_cols = []
 
         if ipds_raw is not None and ip_cols:
-            st.caption(_t("ipds_map_columns"))
-            _ina = _t("col_not_available")
-            _iopt = [_ina] + ip_cols
+            _is_metrics = "Profile" in ip_cols and "Post interaction rate" in ip_cols
 
-            ic1, ic2 = st.columns(2)
-            ip_marca = ic1.selectbox(
-                _t("ipds_col_profile_required"), ip_cols,
-                index=ip_cols.index(_ipds_detect("marca", ip_cols)) if _ipds_detect("marca", ip_cols) else 0,
-                key="ipds_marca",
-            )
-            ip_red = ic2.selectbox(
-                _t("ipds_col_network_required"), ip_cols,
-                index=ip_cols.index(_ipds_detect("red", ip_cols)) if _ipds_detect("red", ip_cols) else 0,
-                key="ipds_red",
-            )
-            ip_inter = ic1.selectbox(
-                _t("ipds_col_interactions_required"), ip_cols,
-                index=ip_cols.index(_ipds_detect("interacciones", ip_cols)) if _ipds_detect("interacciones", ip_cols) else 0,
-                key="ipds_inter",
-            )
-            ip_fecha = ic2.selectbox(
-                _t("ipds_col_pub_date"), _iopt,
-                index=_iopt.index(_ipds_detect("fecha", ip_cols) or _ina),
-                key="ipds_fecha",
-            )
+            if _is_metrics:
+                st.success("Formato de métricas detectado ({} posts)".format(len(ipds_raw)))
 
-            ipds_mapping = {"marca": ip_marca, "red": ip_red, "interacciones": ip_inter}
-            if ip_fecha != _ina:
-                ipds_mapping["fecha"] = ip_fecha
+                all_brands = sorted(ipds_raw["Profile"].dropna().unique().tolist())
+                sel_brands = st.multiselect(
+                    _t("ipds_networks_filter"), all_brands, default=all_brands,
+                    key="ipds_brands",
+                )
+                if sel_brands:
+                    posts_filtered = ipds_raw[ipds_raw["Profile"].isin(sel_brands)]
+                else:
+                    posts_filtered = ipds_raw
 
-            rename_ip = {v: k for k, v in ipds_mapping.items() if v != k}
-            posts_mapped = ipds_raw.rename(columns=rename_ip)
+                n_brands = posts_filtered["Profile"].nunique()
+                st.caption("{} posts · {} marcas".format(len(posts_filtered), n_brands))
 
-            all_networks = sorted(posts_mapped["red"].dropna().unique().tolist())
-            sel_networks = st.multiselect(
-                _t("ipds_networks_filter"), all_networks, default=all_networks,
-                key="ipds_networks",
-            )
-            if sel_networks:
-                posts_filtered = posts_mapped[posts_mapped["red"].isin(sel_networks)]
+                if n_brands < 2:
+                    st.warning(_t("ipds_min_brands"))
+                else:
+                    if st.button(_t("ipds_calculate"), type="primary", key="calc_ipds"):
+                        st.session_state["ipds_ready"] = True
+
+                    if st.session_state.get("ipds_ready"):
+                        try:
+                            ipds_result = ipds.calculate_metrics(posts_filtered, lang=_lang())
+
+                            st.plotly_chart(ipds.thermometer_fig(ipds_result, lang=_lang()),
+                                            use_container_width=True)
+
+                            dim_fig = ipds.dimensions_bar_fig(ipds_result, lang=_lang())
+                            if dim_fig is not None:
+                                st.plotly_chart(dim_fig, use_container_width=True)
+
+                            st.subheader(_t("ipds_detail"))
+                            st.dataframe(ipds_result, hide_index=True,
+                                         use_container_width=True)
+                        except Exception as e:
+                            st.error(_t("ipds_error").format(e))
             else:
-                posts_filtered = posts_mapped
+                st.caption(_t("ipds_map_columns"))
+                _ina = _t("col_not_available")
+                _iopt = [_ina] + ip_cols
 
-            n_brands = posts_filtered["marca"].nunique()
-            st.caption(_t("ipds_brands_networks").format(
-                len(posts_filtered), n_brands, len(sel_networks or all_networks)))
+                ic1, ic2 = st.columns(2)
+                ip_marca = ic1.selectbox(
+                    _t("ipds_col_profile_required"), ip_cols,
+                    index=ip_cols.index(_ipds_detect("marca", ip_cols)) if _ipds_detect("marca", ip_cols) else 0,
+                    key="ipds_marca",
+                )
+                ip_red = ic2.selectbox(
+                    _t("ipds_col_network_required"), ip_cols,
+                    index=ip_cols.index(_ipds_detect("red", ip_cols)) if _ipds_detect("red", ip_cols) else 0,
+                    key="ipds_red",
+                )
+                ip_inter = ic1.selectbox(
+                    _t("ipds_col_interactions_required"), ip_cols,
+                    index=ip_cols.index(_ipds_detect("interacciones", ip_cols)) if _ipds_detect("interacciones", ip_cols) else 0,
+                    key="ipds_inter",
+                )
+                ip_fecha = ic2.selectbox(
+                    _t("ipds_col_pub_date"), _iopt,
+                    index=_iopt.index(_ipds_detect("fecha", ip_cols) or _ina),
+                    key="ipds_fecha",
+                )
 
-            if n_brands < 2:
-                st.warning(_t("ipds_min_brands"))
-            else:
-                if st.button(_t("ipds_calculate"), type="primary", key="calc_ipds"):
-                    st.session_state["ipds_ready"] = True
+                ipds_mapping = {"marca": ip_marca, "red": ip_red, "interacciones": ip_inter}
+                if ip_fecha != _ina:
+                    ipds_mapping["fecha"] = ip_fecha
 
-                if st.session_state.get("ipds_ready"):
-                    try:
-                        ipds_result = ipds.calculate(posts_filtered, lang=_lang())
+                rename_ip = {v: k for k, v in ipds_mapping.items() if v != k}
+                posts_mapped = ipds_raw.rename(columns=rename_ip)
 
-                        st.plotly_chart(ipds.thermometer_fig(ipds_result, lang=_lang()),
-                                        use_container_width=True)
+                all_networks = sorted(posts_mapped["red"].dropna().unique().tolist())
+                sel_networks = st.multiselect(
+                    _t("ipds_networks_filter"), all_networks, default=all_networks,
+                    key="ipds_networks",
+                )
+                if sel_networks:
+                    posts_filtered = posts_mapped[posts_mapped["red"].isin(sel_networks)]
+                else:
+                    posts_filtered = posts_mapped
 
-                        dim_fig = ipds.dimensions_bar_fig(ipds_result, lang=_lang())
-                        if dim_fig is not None:
-                            st.plotly_chart(dim_fig, use_container_width=True)
+                n_brands = posts_filtered["marca"].nunique()
+                st.caption(_t("ipds_brands_networks").format(
+                    len(posts_filtered), n_brands, len(sel_networks or all_networks)))
 
-                        st.subheader(_t("ipds_detail"))
-                        st.dataframe(ipds_result, hide_index=True,
-                                     use_container_width=True)
-                    except Exception as e:
-                        st.error(_t("ipds_error").format(e))
+                if n_brands < 2:
+                    st.warning(_t("ipds_min_brands"))
+                else:
+                    if st.button(_t("ipds_calculate"), type="primary", key="calc_ipds"):
+                        st.session_state["ipds_ready"] = True
+
+                    if st.session_state.get("ipds_ready"):
+                        try:
+                            ipds_result = ipds.calculate(posts_filtered, lang=_lang())
+
+                            st.plotly_chart(ipds.thermometer_fig(ipds_result, lang=_lang()),
+                                            use_container_width=True)
+
+                            dim_fig = ipds.dimensions_bar_fig(ipds_result, lang=_lang())
+                            if dim_fig is not None:
+                                st.plotly_chart(dim_fig, use_container_width=True)
+
+                            st.subheader(_t("ipds_detail"))
+                            st.dataframe(ipds_result, hide_index=True,
+                                         use_container_width=True)
+                        except Exception as e:
+                            st.error(_t("ipds_error").format(e))

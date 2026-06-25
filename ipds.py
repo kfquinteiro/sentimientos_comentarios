@@ -156,6 +156,96 @@ def calculate(posts_df, sentiment_df=None, lang="pt"):
     return result.sort_values("IPD-S", ascending=False).reset_index(drop=True)
 
 
+def calculate_metrics(posts_df, lang="pt"):
+    """Calcula o IPD-S usando métricas de posts (sem comentários/sentimento).
+
+    4 dimensões:
+      1. Atividade    — posts/mês por marca
+      2. Engajamento  — interações médias por post
+      3. Eficiência   — interaction rate médio
+      4. Conversação  — comentários / interações totais
+
+    Parameters
+    ----------
+    posts_df : DataFrame
+        Colunas esperadas (nomes do CSV Fanpage Karma):
+        - Profile (marca)
+        - Date
+        - Reactions, Comments & Shares (interações)
+        - Number of comments
+        - Post interaction rate
+    """
+    COL_MAP = {
+        "Profile": "marca",
+        "Date": "fecha",
+        "Reactions, Comments & Shares": "interacciones",
+        "Number of comments": "comments",
+        "Post interaction rate": "interaction_rate",
+        "Number of Likes": "likes",
+    }
+    df = posts_df.rename(columns={k: v for k, v in COL_MAP.items() if k in posts_df.columns}).copy()
+
+    if "marca" not in df.columns:
+        raise ValueError("Coluna 'Profile' não encontrada")
+
+    df["interacciones"] = pd.to_numeric(df["interacciones"], errors="coerce").fillna(0)
+    df["comments"] = pd.to_numeric(df["comments"], errors="coerce").fillna(0)
+    df["interaction_rate"] = pd.to_numeric(df["interaction_rate"], errors="coerce").fillna(0)
+
+    if "fecha" in df.columns:
+        df["_mes"] = pd.to_datetime(df["fecha"], format="mixed", dayfirst=True, errors="coerce").dt.to_period("M")
+        months_total = df["_mes"].nunique() or 1
+    else:
+        months_total = 1
+
+    by_brand = df.groupby("marca").agg(
+        posts=("marca", "size"),
+        avg_interactions=("interacciones", "mean"),
+        avg_rate=("interaction_rate", "mean"),
+        total_comments=("comments", "sum"),
+        total_interactions=("interacciones", "sum"),
+    ).reset_index()
+
+    by_brand["ppm"] = by_brand["posts"] / months_total
+    by_brand["conversation_ratio"] = (
+        by_brand["total_comments"] / by_brand["total_interactions"].clip(lower=1)
+    )
+
+    by_brand["d_atividade"] = _minmax(np.log1p(by_brand["ppm"])).clip(EPSILON, 1.0)
+    by_brand["d_engajamento"] = _minmax(np.log1p(by_brand["avg_interactions"])).clip(EPSILON, 1.0)
+    by_brand["d_eficiencia"] = _minmax(np.log1p(by_brand["avg_rate"] * 10000)).clip(EPSILON, 1.0)
+    by_brand["d_conversacao"] = _minmax(np.log1p(by_brand["conversation_ratio"] * 100)).clip(EPSILON, 1.0)
+
+    dimensions = ["d_atividade", "d_engajamento", "d_eficiencia", "d_conversacao"]
+
+    by_brand["ipds"] = by_brand[dimensions].apply(
+        lambda row: math.prod(row) ** (1 / len(row)), axis=1
+    ).round(3)
+
+    bands = _bands(lang)
+
+    def _band(v):
+        for lo, hi, label, _ in bands:
+            if v < hi or hi == 1.00:
+                return label
+        return bands[-1][2]
+
+    by_brand["faixa"] = by_brand["ipds"].apply(_band)
+
+    result = by_brand[["marca"] + dimensions + ["ipds", "faixa"]].copy()
+    rename = {
+        "marca": "Marca",
+        "d_atividade": "Actividad",
+        "d_engajamento": "Engagement",
+        "d_eficiencia": "Eficiencia",
+        "d_conversacao": "Conversación",
+        "ipds": "IPD-S",
+        "faixa": "Nivel",
+    }
+    result = result.rename(columns=rename)
+    return result.sort_values("IPD-S", ascending=False).reset_index(drop=True)
+
+
 _IPDS_LABELS = {
     "pt": {"thermometer": "Termômetro Digital do IPD-S",
            "dimensions": "Dimensões do IPD-S por marca",
@@ -225,7 +315,8 @@ def thermometer_fig(ipds_df, lang="pt"):
 
 def dimensions_bar_fig(ipds_df, lang="pt"):
     """Gráfico de barras agrupadas mostrando cada dimensão por marca."""
-    dims = [c for c in ["Actividad", "Engagement", "Multicanal", "Sentimiento"]
+    dims = [c for c in ["Actividad", "Engagement", "Eficiencia", "Conversación",
+                        "Multicanal", "Sentimiento"]
             if c in ipds_df.columns]
     if not dims:
         return None
