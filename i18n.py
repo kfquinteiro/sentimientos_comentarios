@@ -307,138 +307,124 @@ TEXTS = {
         "pt": """**O que é o IPD-S?**
 
 O Indicador de Presença Digital Social (IPD-S) é um índice composto
-que avalia a eficácia da comunicação digital de marcas em redes
-sociais. Inspirado na metodologia do IDH (Índice de Desenvolvimento
-Humano) do PNUD, combina múltiplas dimensões num único número
-de 0 a 1.
+que avalia a performance digital de marcas numa rede social específica,
+usando exclusivamente métricas de publicações. Inspirado na metodologia
+do IDH (Índice de Desenvolvimento Humano) do PNUD, combina 4 dimensões
+num único número de 0 a 1.
 
 **Dimensões**
 
 | Dimensão | O que mede | Como se calcula |
 |---|---|---|
-| **Atividade** | Frequência de publicação | Posts/mês, normalizado por rede |
-| **Engagement** | Ressonância do conteúdo | Interações/post, normalizado por rede |
-| **Multicanal** | Diversificação de plataformas | Nº de redes ativas / total de redes |
-| **Sentimento** | Saúde da percepção de marca | % de comentários positivos *(opcional)* |
+| **Atividade** | Frequência de publicação | Posts/mês por marca |
+| **Engagement** | Ressonância do conteúdo | Média de interações (reações + comentários + compartilhamentos) por post |
+| **Eficiência** | Conversão de audiência | Taxa de interação média por post (interaction rate) |
+| **Conversação** | Qualidade do engajamento | Proporção de comentários sobre o total de interações |
 
-**Normalização por plataforma**
+**Por que essas 4 dimensões?**
 
-Cada rede social tem um comportamento distinto — o volume de
-interações no TikTok não é comparável ao do Facebook. Por isso, as
-dimensões de Atividade e Engagement são calculadas **dentro de cada rede**
-primeiro (comparando marcas entre si nessa plataforma) e depois são
-agregadas como média dos scores por rede.
+- **Atividade** mede se a marca está presente e ativa — sem publicar, não há presença.
+- **Engagement** mede se o conteúdo gera reação — likes, comentários e compartilhamentos.
+- **Eficiência** mede se as interações são proporcionais ao alcance da marca — uma marca grande com poucos likes é ineficiente.
+- **Conversação** diferencia engajamento passivo (likes) de engajamento ativo (comentários). Marcas que geram diálogo constroem comunidade.
+
+**Normalização**
 
 Usa-se escala logarítmica (`log(1 + x)`) antes da normalização
 min-max para suavizar distorções causadas por outliers, seguindo
-a prática do IDH para a dimensão de renda.
+a prática do IDH para a dimensão de renda. Todas as marcas são
+comparadas dentro do mesmo grupo.
 
 **Fórmula**
 
-`IPD-S = (D₁ × D₂ × D₃ × … × Dₙ) ^ (1/n)` — média geométrica
+`IPD-S = (D₁ × D₂ × D₃ × D₄) ^ (1/4)` — média geométrica
 
-A média geométrica (em vez de aritmética) penaliza desequilíbrios:
-uma marca com engagement altíssimo mas atividade zero não pode
-compensar uma dimensão com a outra.
+A média geométrica penaliza desequilíbrios: uma marca com
+engagement altíssimo mas atividade zero não pode compensar
+uma dimensão com a outra. Isso garante que o índice reflete
+performance equilibrada.
 
 **Escala e níveis**
 
 | Nível | Intervalo | Interpretação |
 |---|---|---|
-| Muito baixo | 0,00 – 0,20 | Presença digital frágil ou incipiente |
-| Baixo | 0,20 – 0,40 | Presença abaixo da média do grupo |
-| Médio | 0,40 – 0,60 | Presença média, com espaço para evoluir |
-| Alto | 0,60 – 0,80 | Presença sólida e consistente |
+| Muito baixo | 0,00 – 0,20 | Performance digital frágil ou incipiente |
+| Baixo | 0,20 – 0,40 | Performance abaixo da média do grupo |
+| Médio | 0,40 – 0,60 | Performance média, com espaço para evoluir |
+| Alto | 0,60 – 0,80 | Performance sólida e consistente |
 | Muito alto | 0,80 – 1,00 | Referência digital no grupo analisado |
 
 **Como ler o termômetro?**
 
-- As marcas posicionadas **mais à esquerda** (zona vermelha/laranja)
-  têm uma presença digital fraca no grupo: publicam pouco,
-  geram baixo engagement, ou estão presentes em poucas redes. Precisam
-  de atenção e estratégia para melhorar seu posicionamento.
-- As marcas posicionadas **mais à direita** (zona verde) dominam
-  a conversa digital: publicam com frequência, geram alto
-  engagement relativo à sua plataforma, estão diversificadas em
-  múltiplas redes e (se há dados) têm um sentimento positivo.
-  São a referência do grupo.
+- Marcas **à esquerda** (zona vermelha/laranja) têm performance fraca: publicam pouco, geram baixo engagement, ou têm baixa eficiência. Precisam de atenção estratégica.
+- Marcas **à direita** (zona verde) dominam: publicam com frequência, geram alto engagement, são eficientes e fomentam conversação. São a referência do grupo.
 
 **Limitações**
 
-- O IPD-S é relativo ao grupo de marcas analisado, não absoluto.
-  Adicionar ou remover uma marca pode alterar os scores das demais.
-- Não considera dark posts, mídia paga isolada, Google, imprensa, Wikipédia
-  ou outras camadas do digital fora das redes sociais.
-- A dimensão de Sentimento depende da disponibilidade de análise
-  de comentários (pode ser omitida se não há dados).
+- O IPD-S é **relativo** ao grupo de marcas analisado, não absoluto. Adicionar ou remover uma marca pode alterar os scores.
+- Analisa uma **rede social por vez**. Para comparação multicanal, use a versão multirede com a dimensão Multicanal.
+- Não considera dark posts, mídia paga isolada, ou métricas externas às redes sociais.
 """,
         "es": """**¿Qué es el IPD-S?**
 
 El Indicador de Presencia Digital Social (IPD-S) es un índice compuesto
-que evalúa la eficacia de la comunicación digital de marcas en redes
-sociales. Inspirado en la metodología del IDH (Índice de Desarrollo
-Humano) del PNUD, combina múltiples dimensiones en un único número
-de 0 a 1.
+que evalúa la performance digital de marcas en una red social específica,
+usando exclusivamente métricas de publicaciones. Inspirado en la metodología
+del IDH (Índice de Desarrollo Humano) del PNUD, combina 4 dimensiones
+en un único número de 0 a 1.
 
 **Dimensiones**
 
 | Dimensión | Qué mide | Cómo se calcula |
 |---|---|---|
-| **Actividad** | Frecuencia de publicación | Posts/mes, normalizado por red |
-| **Engagement** | Resonancia del contenido | Interacciones/post, normalizado por red |
-| **Multicanal** | Diversificación de plataformas | Nº de redes activas / total de redes |
-| **Sentimiento** | Salud de la percepción de marca | % de comentarios positivos *(opcional)* |
+| **Actividad** | Frecuencia de publicación | Posts/mes por marca |
+| **Engagement** | Resonancia del contenido | Promedio de interacciones (reacciones + comentarios + compartidos) por post |
+| **Eficiencia** | Conversión de audiencia | Tasa de interacción promedio por post (interaction rate) |
+| **Conversación** | Calidad del engagement | Proporción de comentarios sobre el total de interacciones |
 
-**Normalización por plataforma**
+**¿Por qué estas 4 dimensiones?**
 
-Cada red social tiene un comportamiento distinto — el volumen de
-interacciones en TikTok no es comparable al de Facebook. Por eso, las
-dimensiones de Actividad y Engagement se calculan **dentro de cada red**
-primero (comparando marcas entre sí en esa plataforma) y luego se
-agregan como promedio de los scores por red.
+- **Actividad** mide si la marca está presente y activa — sin publicar, no hay presencia.
+- **Engagement** mide si el contenido genera reacción — likes, comentarios y compartidos.
+- **Eficiencia** mide si las interacciones son proporcionales al alcance de la marca — una marca grande con pocos likes es ineficiente.
+- **Conversación** diferencia engagement pasivo (likes) de engagement activo (comentarios). Las marcas que generan diálogo construyen comunidad.
+
+**Normalización**
 
 Se usa escala logarítmica (`log(1 + x)`) antes de la normalización
 min-max para suavizar distorsiones causadas por outliers, siguiendo
-la práctica del IDH para la dimensión de ingreso.
+la práctica del IDH para la dimensión de ingreso. Todas las marcas se
+comparan dentro del mismo grupo.
 
 **Fórmula**
 
-`IPD-S = (D₁ × D₂ × D₃ × … × Dₙ) ^ (1/n)` — media geométrica
+`IPD-S = (D₁ × D₂ × D₃ × D₄) ^ (1/4)` — media geométrica
 
-La media geométrica (en vez de aritmética) penaliza desequilibrios:
-una marca con engagement altísimo pero actividad cero no puede
-compensar una dimensión con la otra.
+La media geométrica penaliza desequilibrios: una marca con
+engagement altísimo pero actividad cero no puede compensar
+una dimensión con la otra. Esto garantiza que el índice refleja
+performance equilibrada.
 
 **Escala y niveles**
 
 | Nivel | Intervalo | Interpretación |
 |---|---|---|
-| Muy bajo | 0,00 – 0,20 | Presencia digital frágil o incipiente |
-| Bajo | 0,20 – 0,40 | Presencia por debajo del promedio del grupo |
-| Medio | 0,40 – 0,60 | Presencia promedio, con espacio para evolucionar |
-| Alto | 0,60 – 0,80 | Presencia sólida y consistente |
+| Muy bajo | 0,00 – 0,20 | Performance digital frágil o incipiente |
+| Bajo | 0,20 – 0,40 | Performance por debajo del promedio del grupo |
+| Medio | 0,40 – 0,60 | Performance promedio, con espacio para evolucionar |
+| Alto | 0,60 – 0,80 | Performance sólida y consistente |
 | Muy alto | 0,80 – 1,00 | Referencia digital en el grupo analizado |
 
 **¿Cómo leer el termómetro?**
 
-- Las marcas posicionadas **más a la izquierda** (zona roja/naranja)
-  tienen una presencia digital débil en el grupo: publican poco,
-  generan bajo engagement, o están presentes en pocas redes. Requieren
-  atención y estrategia para mejorar su posicionamiento.
-- Las marcas posicionadas **más a la derecha** (zona verde) dominan
-  la conversación digital: publican con frecuencia, generan alto
-  engagement relativo a su plataforma, están diversificadas en
-  múltiples redes y (si hay datos) tienen un sentimiento positivo.
-  Son la referencia del grupo.
+- Marcas **a la izquierda** (zona roja/naranja) tienen performance débil: publican poco, generan bajo engagement, o tienen baja eficiencia. Requieren atención estratégica.
+- Marcas **a la derecha** (zona verde) dominan: publican con frecuencia, generan alto engagement, son eficientes y fomentan conversación. Son la referencia del grupo.
 
 **Limitaciones**
 
-- El IPD-S es relativo al grupo de marcas analizado, no absoluto.
-  Agregar o quitar una marca puede alterar los scores de las demás.
-- No considera dark posts, pauta aislada, Google, prensa, Wikipedia
-  u otras capas del digital fuera de las redes sociales.
-- La dimensión de Sentimiento depende de la disponibilidad de análisis
-  de comentarios (puede omitirse si no hay datos).
+- El IPD-S es **relativo** al grupo de marcas analizado, no absoluto. Agregar o quitar una marca puede alterar los scores.
+- Analiza una **red social a la vez**. Para comparación multicanal, use la versión multired con la dimensión Multicanal.
+- No considera dark posts, pauta aislada, ni métricas externas a las redes sociales.
 """,
     },
     "brand": {"pt": "Marca", "es": "Marca"},
