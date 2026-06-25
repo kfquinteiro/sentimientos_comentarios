@@ -575,23 +575,7 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
     else:
         st.caption(_t("no_pub_dates"))
 
-    if show_brand_comparison and "Marca" in df.columns:
-        marcas = sorted(df["Marca"].dropna().unique().tolist())
-        if len(marcas) > 1:
-            st.subheader(_t("brand_comparison"))
-
-            st.plotly_chart(charts.bar_by_brand(chart_df, lang=_lang()), use_container_width=True)
-
-            st.markdown("**{}**".format(_t("wordcloud_by_brand")))
-            sel_marca_wc = st.selectbox(
-                "Marca", marcas, key="{}_wc_marca_select".format(key_prefix),
-            )
-            marca_texts = df[df["Marca"] == sel_marca_wc]["Comentario"].dropna()
-            img = charts.wordcloud_image(marca_texts, extra_stopwords=extra_sw) if not marca_texts.empty else None
-            if img is not None:
-                st.image(img, use_container_width=True)
-            else:
-                st.caption(_t("not_enough_text_cloud"))
+    pass
 
 
 os.makedirs(INPUT_DIR, exist_ok=True)
