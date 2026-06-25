@@ -2,6 +2,7 @@
 import json
 import re
 
+import pandas as pd
 import plotly.express as px
 from wordcloud import WordCloud
 
