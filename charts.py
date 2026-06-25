@@ -249,6 +249,8 @@ def bar_by_network(df, lang="pt"):
 
 
 def line_over_time(df, lang="pt"):
+    if "fecha_comentario" not in df.columns:
+        return None
     with_date = df.dropna(subset=["fecha_comentario"]).copy()
     if with_date.empty:
         return None
@@ -275,6 +277,8 @@ def bar_by_brand(df, lang="pt"):
 
 
 def line_over_time_by_network(df, lang="pt"):
+    if "fecha_comentario" not in df.columns:
+        return None
     with_date = df.dropna(subset=["fecha_comentario"]).copy()
     if with_date.empty:
         return None
@@ -370,6 +374,8 @@ def heatmap_tema_red(df, tema_col="tema", lang="pt"):
 
 
 def monthly_sentiment_pct(df, lang="pt"):
+    if "fecha_comentario" not in df.columns:
+        return None
     with_date = df.dropna(subset=["fecha_comentario"]).copy()
     if with_date.empty:
         return None
@@ -438,6 +444,8 @@ def sentiment_pct_by_topic(df, tema_col="tema", lang="pt"):
 
 
 def topic_evolution(df, tema_col="tema", lang="pt"):
+    if "fecha_comentario" not in df.columns:
+        return None
     with_date = df.dropna(subset=["fecha_comentario"]).copy()
     if with_date.empty or tema_col not in with_date.columns:
         return None
