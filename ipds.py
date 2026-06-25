@@ -1,6 +1,6 @@
 """IPD-S — Indicador de Presença Digital (Social).
 
-Calcula um índice de 0 a 1 por marca usando média geométrica
+Calcula um índice de 0 a 1 por marca usando média geométrica (IDH)
 (metodologia IDH) de até 4 dimensões:
   1. Atividade     — posts/mês
   2. Engajamento   — interações/post
