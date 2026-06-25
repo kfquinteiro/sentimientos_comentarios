@@ -254,7 +254,7 @@ def line_over_time(df, lang="pt"):
     with_date = df.dropna(subset=["fecha_comentario"]).copy()
     if with_date.empty:
         return None
-    with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
+    with_date["mes"] = pd.to_datetime(with_date["fecha_comentario"], errors="coerce").dt.to_period("M").astype(str)
     over_time = with_date.groupby(["mes", "sentimiento"]).size().reset_index(name=_cl("quantity", lang))
     return px.line(
         over_time, x="mes", y=_cl("quantity", lang), color="sentimiento",
@@ -282,7 +282,7 @@ def line_over_time_by_network(df, lang="pt"):
     with_date = df.dropna(subset=["fecha_comentario"]).copy()
     if with_date.empty:
         return None
-    with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
+    with_date["mes"] = pd.to_datetime(with_date["fecha_comentario"], errors="coerce").dt.to_period("M").astype(str)
     over_time = with_date.groupby(["mes", "red", "sentimiento"]).size().reset_index(name=_cl("quantity", lang))
     fig = px.line(
         over_time, x="mes", y=_cl("quantity", lang), color="sentimiento",
@@ -379,7 +379,7 @@ def monthly_sentiment_pct(df, lang="pt"):
     with_date = df.dropna(subset=["fecha_comentario"]).copy()
     if with_date.empty:
         return None
-    with_date["mes"] = with_date["fecha_comentario"].dt.to_period("M").astype(str)
+    with_date["mes"] = pd.to_datetime(with_date["fecha_comentario"], errors="coerce").dt.to_period("M").astype(str)
     ct = with_date.groupby(["mes", "sentimiento"]).size().unstack(fill_value=0)
     for s in SENTIMENT_ORDER:
         if s not in ct.columns:
@@ -452,7 +452,7 @@ def topic_evolution(df, tema_col="tema", lang="pt"):
     filtered = with_date[~with_date[tema_col].isin(["Otros", "Outros"])]
     if filtered.empty:
         return None
-    filtered["mes"] = filtered["fecha_comentario"].dt.to_period("M").astype(str)
+    filtered["mes"] = pd.to_datetime(filtered["fecha_comentario"], errors="coerce").dt.to_period("M").astype(str)
     agg = filtered.groupby(["mes", tema_col]).size().reset_index(name="cnt")
     pivot = agg.pivot(index=tema_col, columns="mes", values="cnt").fillna(0)
     pivot = pivot.loc[pivot.sum(axis=1).sort_values(ascending=True).index]
