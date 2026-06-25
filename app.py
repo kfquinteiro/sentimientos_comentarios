@@ -1605,7 +1605,7 @@ with tab_clasif:
         c_links = [_t("clasif_all_m")] + sorted(clasif_df["Link del post"].dropna().unique().tolist()) if "Link del post" in clasif_df.columns else [_t("clasif_all_m")]
         c_link = fc7.selectbox(_t("col_post_link"), c_links, key="clasif_link_f")
 
-        filtered = clasif_df.copy()
+        filtered = clasif_df
         if c_search.strip():
             filtered = filtered[filtered["Comentario"].str.lower().str.contains(
                 c_search.strip().lower(), na=False)]
@@ -1733,14 +1733,15 @@ with tab_clasif:
             with st.container(border=True):
                 st.markdown(_card_html, unsafe_allow_html=True)
 
-                _png_bytes = _generate_card_png(_row)
-                _png_b64 = base64.b64encode(_png_bytes).decode()
-                st.markdown(
-                    '<a href="data:image/png;base64,{}" download="mencion_{}_{}.png" '
-                    'style="font-size:0.78rem;color:#09B7E9;text-decoration:none">'
-                    '📥 {}</a>'.format(_png_b64, _autor[:20], _ci, _t("download_png")),
-                    unsafe_allow_html=True,
-                )
+                if st.button("📥 PNG", key="card_png_{}_{}".format(page_num, _ci)):
+                    _png_bytes = _generate_card_png(_row)
+                    st.download_button(
+                        "💾 " + _t("download_png"),
+                        data=_png_bytes,
+                        file_name="mencion_{}_{}.png".format(_autor[:20], _ci),
+                        mime="image/png",
+                        key="card_dl_{}_{}".format(page_num, _ci),
+                    )
 
                 st.markdown(
                     '<div style="border-top:1px solid #eee;margin:4px 0 8px"></div>',
