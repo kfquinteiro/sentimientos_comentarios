@@ -561,11 +561,11 @@ def render_sentiment_dashboard(active_path, mtime, key_prefix, show_brand_compar
 
     st.subheader(_t("posts_by_month"))
     with_post_date = df.copy()
-    if "Fecha de publicación" not in with_post_date.columns:
-        with_post_date = pd.DataFrame()
-    else:
+    if "Fecha de publicación" in with_post_date.columns:
         with_post_date["Mes"] = pd.to_datetime(with_post_date["Fecha de publicación"], errors="coerce").dt.to_period("M").astype(str)
-    with_post_date = with_post_date[with_post_date["Mes"] != "NaT"]
+        with_post_date = with_post_date[with_post_date["Mes"] != "NaT"]
+    else:
+        with_post_date = pd.DataFrame()
     if not with_post_date.empty:
         group_cols = [c for c in ["Mes", "Red", "Marca", "Link del post"] if c in with_post_date.columns]
         by_post = with_post_date.groupby(group_cols).size().reset_index(name="Comentarios")
